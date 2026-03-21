@@ -68,7 +68,7 @@ document.onkeydown = function(e) {
   if (e.ctrlKey && e.shiftKey && ['I','C','J'].includes(String.fromCharCode(e.keyCode))) return false;
   if (e.ctrlKey && e.keyCode == 85) return false;
 }
-setInterval(() => { const t = Date.now(); debugger; if (Date.now()-t>100) window.location.href="about:blank"; }, 1000);
+// Anti-debugger removed
 </script>
 
 <!-- Fonts -->
@@ -637,14 +637,23 @@ const imgObserver = new IntersectionObserver((entries) => {
       const img = entry.target;
       const src = img.dataset.src;
       if(src) {
+        img.onload = () => {
+          img.classList.add('img-loaded');
+          const sk = img.nextElementSibling;
+          if(sk && (sk.classList.contains('sk') || sk.classList.contains('skeleton'))) sk.style.display='none';
+        };
+        img.onerror = () => {
+          img.classList.add('img-loaded');
+          const sk = img.nextElementSibling;
+          if(sk) sk.style.display='none';
+          img.style.background = '#f0f0f0';
+        };
         img.src = src;
-        img.onload = () => { img.classList.add('img-loaded'); };
-        img.onerror = () => { img.classList.add('img-loaded'); };
         imgObserver.unobserve(img);
       }
     }
   });
-}, { rootMargin: '200px 0px' });
+}, { rootMargin: '300px 0px' });
 
 function observeImages() {
   document.querySelectorAll('img[data-src]').forEach(img => imgObserver.observe(img));
@@ -814,10 +823,6 @@ function renderGrid(list, id) {
     </div>`;
   });
   document.querySelectorAll('img[data-src]').forEach(img=>imgObserver.observe(img));
-  document.querySelectorAll('.card-img').forEach(img=>{
-    img.onload=()=>{img.classList.add('img-loaded');const sk=img.nextElementSibling;if(sk&&sk.classList.contains('sk'))sk.style.display='none';};
-    img.onerror=()=>{img.classList.add('img-loaded');const sk=img.nextElementSibling;if(sk)sk.style.display='none';};
-  });
 }
 
 // ====== WISHLIST ======
