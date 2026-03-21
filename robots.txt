@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /create_order.php
+
+Sitemap: https://anifold.shop/sitemap.xml
