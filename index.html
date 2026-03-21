@@ -1320,7 +1320,11 @@ window.confirmOrder = event => {
     rzp.on('payment.failed', r=>{showToast("Payment failed: "+r.error.description,'error');btn.disabled=false;btn.innerText="PLACE ORDER →";});
     rzp.open();
   })
-  .catch(()=>{showToast("Connection error. Try again.",'error');btn.disabled=false;btn.innerText="PLACE ORDER →";});
+  .catch(e=>{
+    const msg = e.message === 'Failed to fetch' ? 'Server error — check your internet or try again.' : 'Connection error. Please try again.';
+    showToast(msg,'error');
+    btn.disabled=false; btn.innerText="PLACE ORDER →";
+  });
 };
 
 // ====== LIBRARY ======
