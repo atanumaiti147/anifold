@@ -153,7 +153,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 /* ===== RESPONSIVE ===== */
 /* Mobile */
 @media (max-width: 640px) {
-  .hero-section { min-height: auto; }
+  .hero-section { min-height: 340px; }
   .hero-content { flex-direction: column; padding: 28px 16px; gap: 16px; }
   .hero-right { width: 65%; max-width: 200px; order: -1; }
   .hero-subtitle { display: none; }
@@ -434,7 +434,10 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 <div id="app-wrapper" style="display:flex;flex-direction:column;min-height:100vh;width:100%;">
   <header id="main-header">
     <div class="menu-btn" onclick="toggleMenu()" style="flex-shrink:0;">☰</div>
-    <div style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;min-width:0;"><img id="head-logo" class="header-logo" src="" alt="Anifold Store" onclick="nav('home')" style="display:none;"></div>
+    <div style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;min-width:0;">
+    <img id="head-logo" class="header-logo" src="" alt="Anifold Store" onclick="nav('home')" style="display:none;" onerror="this.style.display='none';document.getElementById('head-logo-text').style.display='block';">
+    <span id="head-logo-text" onclick="nav('home')" style="display:none;font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--primary);cursor:pointer;letter-spacing:1px;">ANIFOLD</span>
+  </div>
     <div class="header-right" style="flex-shrink:0;">
       <button class="pwa-install-btn" id="pwa-header-btn">📲 Install</button>
       <div class="cart-icon-wrap" onclick="toggleCart(true)">
@@ -673,13 +676,15 @@ const EJS_TEMPLATE_CONTACT = "template_uxxobnl";  // EmailJS template ID
 
 // ====== UNIVERSAL EMAIL SENDER ======
 async function callEmail(action, data) {
-  // Method 1: Try PHP backend first
+  // Method 1: Try PHP backend first (3s timeout)
   try {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 3000);
     const res = await fetch(BACKEND + "?action=" + action, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
-      //  // removed
+      signal: controller.signal
     });
     if(res.ok) { const d=await res.json().catch(()=>({})); if(d.success) return; }
   } catch(e) {}
@@ -1014,7 +1019,9 @@ db.ref('meta').on('value', s=>{
       const hl=document.getElementById('head-logo');
       hl.src=v.brand.headerLogoUrl;
       hl.style.display='block';
-      hl.onerror=()=>{hl.style.display='none';};
+      const ltxt=document.getElementById('head-logo-text');
+      hl.onload=()=>{hl.style.display='block';if(ltxt)ltxt.style.display='none';};
+      hl.onerror=()=>{hl.style.display='none';if(ltxt)ltxt.style.display='block';};
       try{const sl=document.getElementById('side-logo');sl.src=v.brand.headerLogoUrl;sl.style.display='block';}catch(e){}
     }
     // Footer logo removed per user preference
@@ -1369,13 +1376,11 @@ window.sendContactEmail = async () => {
   } catch(e) {}
 
   // STEP 2: Show success IMMEDIATELY — don't wait for email
-  showToast('Message sent! We will reply within 24 hours 📬');
   ['c-name','c-email','c-msg'].forEach(id => document.getElementById(id).value='');
   btn.innerText='SEND MESSAGE'; btn.disabled=false;
 
   // STEP 3: Try emails in background (don't block UI)
   // EmailJS
-  // EmailJS (background — don't block UI)
   if(typeof emailjs !== 'undefined' && EJS_SERVICE_ID !== 'EMAILJS_SERVICE_ID') {
     emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_CONTACT, {
       from_name: name, from_email: email, message: msg, reply_to: email
@@ -1394,14 +1399,14 @@ window.sendContactEmail = async () => {
 function showContactSuccessPopup() {
   const popup = document.createElement('div');
   popup.id = 'cs-popup';
-  popup.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeInBg .25s ease;';
-  popup.innerHTML = '<div style="background:#fff;border-radius:20px;padding:36px 24px;text-align:center;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.25);animation:popIn .3s cubic-bezier(0.34,1.56,0.64,1);">'
-    + '<div style="font-size:3.5rem;margin-bottom:10px;">📬</div>'
-    + '<div style="font-size:1.2rem;font-weight:900;color:#111827;margin-bottom:8px;">Message Sent!</div>'
-    + '<div style="font-size:0.88rem;color:#6b7280;line-height:1.7;margin-bottom:22px;">We received your message and will reply within <strong style="color:#702122;">24 hours</strong>. For instant help, WhatsApp us!</div>'
-    + '<a href="https://wa.link/s62366" target="_blank" style="display:block;background:#25d366;color:#fff;padding:13px;border-radius:10px;font-weight:800;text-decoration:none;margin-bottom:10px;font-size:0.9rem;">💬 Chat on WhatsApp</a>'
-    + '<button onclick="document.getElementById('cs-popup').remove()" style="width:100%;background:#f3f4f6;color:#555;border:none;padding:12px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.88rem;">Close</button>'
-    + '</div>';
+  popup.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  popup.innerHTML = `<div style="background:#fff;border-radius:20px;padding:36px 24px;text-align:center;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div style="font-size:3.5rem;margin-bottom:10px;">📬</div>
+    <div style="font-size:1.2rem;font-weight:900;color:#111827;margin-bottom:8px;">Message Sent!</div>
+    <div style="font-size:0.88rem;color:#6b7280;line-height:1.7;margin-bottom:22px;">We received your message and will reply within <strong style="color:#702122;">24 hours</strong>. For instant help, WhatsApp us!</div>
+    <a href="https://wa.link/s62366" target="_blank" style="display:block;background:#25d366;color:#fff;padding:13px;border-radius:10px;font-weight:800;text-decoration:none;margin-bottom:10px;font-size:0.9rem;">💬 Chat on WhatsApp</a>
+    <button onclick="document.getElementById('cs-popup').remove()" style="width:100%;background:#f3f4f6;color:#555;border:none;padding:12px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.88rem;">Close</button>
+  </div>`;
   document.body.appendChild(popup);
   popup.addEventListener('click', e => { if(e.target === popup) popup.remove(); });
 }
