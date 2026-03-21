@@ -30,7 +30,7 @@ $RAZORPAY_KEY_SECRET = "1NhInpsQLAeYbjsLE63oXvSH";     // Aapka existing secret 
 $RESEND_API_KEY = "re_NDfXidA1_3bAJr9iNLuH9Dtcevud4TCf2";
 
 // Email sender (resend mein domain verify karo pehle - neeche guide hai)
-$FROM_EMAIL = "noreply@anifold.shop";
+$FROM_EMAIL = "noreply@mail.anifold.shop";
 $FROM_NAME  = "Anifold Store";
 
 // Cloudinary: cloudinary.com → Sign up → Dashboard se copy karo
