@@ -736,25 +736,56 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch
 // ====== AUTH ======
 // Google Login — welcome email sirf pehli baar
 window.doGoogleLogin = () => {
-  auth.signInWithPopup(googleProvider).then(r => {
-    const u = r.user;
-    db.ref('users/'+u.uid).once('value').then(s => {
-      if(!s.exists()) {
-        const n=(u.displayName||'').split(' ');
-        db.ref('users/'+u.uid).set({email:u.email, uid:u.uid, firstName:n[0]||'', lastName:n[1]||'', mobile:'', createdAt:firebase.database.ServerValue.TIMESTAMP});
-        // WELCOME EMAIL — sirf pehli baar Google se login pe
-        callEmail('welcome_email', { to_email: u.email, to_name: u.displayName || 'Friend' });
-      }
-    });
-    showToast("Welcome, " + u.displayName + "! 🎉");
-    nav('home');
-  }).catch(e => {
-    const msg = e.code === 'auth/popup-closed-by-user' ? 'Login cancelled.' :
-                e.code === 'auth/network-request-failed' ? 'No internet connection.' :
-                'Google login failed. Please try again.';
-    showToast(msg, 'error');
-  });
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+  if(isMobile) {
+    // Mobile — redirect (popup blocked on mobile browsers)
+    localStorage.setItem('googleRedirectPending', '1');
+    auth.signInWithRedirect(googleProvider);
+  } else {
+    // Desktop — popup
+    auth.signInWithPopup(googleProvider)
+      .then(r => handleGoogleResult(r))
+      .catch(e => {
+        // If popup blocked, fallback to redirect
+        if(e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user') {
+          auth.signInWithRedirect(googleProvider);
+        } else {
+          showToast(e.code === 'auth/network-request-failed' ? 'No internet connection.' : 'Google login failed. Try again.', 'error');
+        }
+      });
+  }
 };
+
+function handleGoogleResult(r) {
+  const u = r.user;
+  db.ref('users/'+u.uid).once('value').then(s => {
+    if(!s.exists()) {
+      const n=(u.displayName||'').split(' ');
+      db.ref('users/'+u.uid).set({
+        email:u.email, uid:u.uid, firstName:n[0]||'', lastName:n[1]||'',
+        mobile:'', createdAt:firebase.database.ServerValue.TIMESTAMP
+      });
+      callEmail('welcome_email', { to_email:u.email, to_name:u.displayName||'Friend' });
+    }
+  });
+  showToast('Welcome, ' + (u.displayName||'Friend') + '! 🎉');
+  nav('home');
+}
+
+// Handle redirect result on page load (mobile Google login)
+auth.getRedirectResult().then(r => {
+  if(r && r.user && localStorage.getItem('googleRedirectPending')) {
+    localStorage.removeItem('googleRedirectPending');
+    handleGoogleResult(r);
+  }
+}).catch(e => {
+  localStorage.removeItem('googleRedirectPending');
+  if(e.code && e.code !== 'auth/no-auth-event') {
+    showToast('Google login failed. Please try again.', 'error');
+  }
+});
 
 auth.onAuthStateChanged(u => {
   const aEls=document.querySelectorAll('.auth-only');
@@ -1267,23 +1298,40 @@ function loadOrderHistory(){
   });
 }
 
-// ====== CONTACT EMAIL — PHP Resend se ======
-window.sendContactEmail = () => {
-  const name  = document.getElementById('c-name').value;
-  const email = document.getElementById('c-email').value;
-  const msg   = document.getElementById('c-msg').value;
-  if(!name||!email||!msg){showToast("Fill all fields",'error');return;}
+// ====== CONTACT EMAIL ======
+window.sendContactEmail = async () => {
+  const name  = document.getElementById('c-name').value.trim();
+  const email = document.getElementById('c-email').value.trim();
+  const msg   = document.getElementById('c-msg').value.trim();
+  if(!name||!email||!msg){showToast('Fill all fields','error');return;}
 
   const btn = document.querySelector('.c-btn');
-  btn.innerText="Sending..."; btn.disabled=true;
+  btn.innerText='Sending...'; btn.disabled=true;
 
-  // ✅ CONTACT REPLY EMAIL — PHP Resend se
-  callEmail('contact_email', { to_email: email, to_name: name, message: msg })
-    .then(()=>{
-      showToast("Message sent! We'll reply soon 📬");
+  try {
+    const res = await fetch(BACKEND + '?action=contact_email', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ to_email:email, to_name:name, message:msg })
+    });
+    const data = await res.json().catch(()=>({}));
+    if(res.ok || data.success) {
+      showToast('Message sent! We will reply soon 📬');
       ['c-name','c-email','c-msg'].forEach(id=>document.getElementById(id).value='');
-    })
-    .finally(()=>{ btn.innerText="SEND MESSAGE"; btn.disabled=false; });
+    } else {
+      // Backend failed — save to Firebase as fallback
+      db.ref('contact_messages').push({ name, email, message:msg, date:Date.now(), status:'unread' });
+      showToast('Message received! We will get back to you 📬');
+      ['c-name','c-email','c-msg'].forEach(id=>document.getElementById(id).value='');
+    }
+  } catch(e) {
+    // Network error — save to Firebase
+    db.ref('contact_messages').push({ name, email, message:msg, date:Date.now(), status:'unread' });
+    showToast('Message saved! We will reply soon 📬');
+    ['c-name','c-email','c-msg'].forEach(id=>document.getElementById(id).value='');
+  } finally {
+    btn.innerText='SEND MESSAGE'; btn.disabled=false;
+  }
 };
 
 // ====== AUTH — Welcome email signup pe ======
