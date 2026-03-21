@@ -98,8 +98,8 @@ body { background: var(--gray); color: var(--text); overflow-x: hidden; display:
 .img-wrap { position: relative; overflow: hidden; background: #f0f0f0; }
 .img-wrap .skeleton-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; transition: opacity 0.3s; }
 .img-wrap img.loaded + .skeleton-overlay, .img-wrap img[data-loaded="true"] + .skeleton-overlay { opacity: 0; pointer-events: none; }
-header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 0 20px; display: flex; justify-content: space-between; align-items: center; height: 64px; border-bottom: 1px solid rgba(0,0,0,0.06); box-shadow: 0 2px 20px rgba(0,0,0,0.06); }
-.header-logo { max-height: 44px; width: auto; object-fit: contain; cursor: pointer; }
+header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 0 16px; display: flex; justify-content: space-between; align-items: center; height: 60px; border-bottom: 1px solid rgba(0,0,0,0.06); box-shadow: 0 2px 20px rgba(0,0,0,0.06); gap: 8px; overflow: hidden; }
+.header-logo { max-height: 40px; max-width: 140px; width: auto; object-fit: contain; cursor: pointer; }
 .menu-btn { font-size: 24px; cursor: pointer; color: var(--dark); padding: 4px; }
 .header-right { display: flex; align-items: center; gap: 14px; }
 .cart-icon-wrap { position: relative; cursor: pointer; padding: 4px; }
@@ -163,7 +163,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
   .section-title { font-size: 1.1rem; }
   .pd-title { font-size: 1.25rem; }
   .pd-price { font-size: 1.4rem; }
-  header { padding: 0 14px; height: 58px; }
+  header { padding: 0 12px; height: 54px; } .header-logo { max-height: 34px; max-width: 110px; }
   .card-img-wrap img { height: 150px; }
   .checkout-box { padding: 14px; }
 }
@@ -414,9 +414,9 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 
 <div id="app-wrapper" style="display:flex;flex-direction:column;min-height:100vh;">
   <header id="main-header">
-    <div class="menu-btn" onclick="toggleMenu()">☰</div>
-    <div><img id="head-logo" class="header-logo" src="" alt="Anifold Store" onclick="nav('home')" style="display:none;"></div>
-    <div class="header-right">
+    <div class="menu-btn" onclick="toggleMenu()" style="flex-shrink:0;">☰</div>
+    <div style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;min-width:0;"><img id="head-logo" class="header-logo" src="" alt="Anifold Store" onclick="nav('home')" style="display:none;"></div>
+    <div class="header-right" style="flex-shrink:0;">
       <button class="pwa-install-btn" id="pwa-header-btn">📲 Install</button>
       <div class="cart-icon-wrap" onclick="toggleCart(true)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
