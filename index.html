@@ -1271,60 +1271,84 @@ function updateCheckoutSummary(){
 
 // ====== CONFIRM ORDER — Resend email bhi jaata hai ======
 window.confirmOrder = event => {
-  if(!razorpayKey){showToast("Gateway error — contact support",'error');return;}
-  const btn=event.target;btn.disabled=true;btn.innerText="Processing...";
-  const amt=Math.round(checkoutFinalAmount*100);
+  if(!razorpayKey){ showToast("Payment not configured — contact support",'error'); return; }
+  if(!auth.currentUser){ showToast("Please login first",'error'); nav('auth'); return; }
 
-  fetch(BACKEND, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({amount:amt})})
-  .then(r=>{if(!r.ok)throw new Error(r.status);return r.json();})
-  .then(data=>{
-    if(!data.order_id){showToast("Server error. Try again.",'error');btn.disabled=false;btn.innerText="PLACE ORDER →";return;}
+  const btn = event.target;
+  btn.disabled = true;
+  btn.innerText = "Opening Payment...";
 
-    const rzp = new Razorpay({
-      key: razorpayKey, amount: amt, currency: "INR",
-      name: "Anifold Store",
-      description: checkoutItems.length===1?checkoutItems[0].title:`${checkoutItems.length} items`,
-      order_id: data.order_id,
+  const amt = Math.round(checkoutFinalAmount * 100);
+  const orderDate = new Date().toLocaleString('en-IN', {dateStyle:'medium', timeStyle:'short'});
 
-      handler: function(resp) {
-        const orderDate = new Date().toLocaleString('en-IN', {dateStyle:'medium', timeStyle:'short'});
+  // Open Razorpay directly — no server call needed
+  const rzp = new Razorpay({
+    key:         razorpayKey,
+    amount:      amt,
+    currency:    "INR",
+    name:        "Anifold Store",
+    description: checkoutItems.length === 1 ? checkoutItems[0].title : checkoutItems.length + " items",
+    image:       "https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png",
 
-        // Firebase mein save karo
-        checkoutItems.forEach(item => {
-          const price = getFlashPrice(item)||item.discountedPrice;
-          db.ref('orders').push({item:item.title, price, email:auth.currentUser.email, date:Date.now(), paymentId:resp.razorpay_payment_id, status:'completed'});
-          db.ref('users/'+auth.currentUser.uid+'/purchases/'+item.key).set(true);
+    handler: function(resp) {
+      btn.innerText = "Saving...";
+
+      // 1. Save to Firebase
+      checkoutItems.forEach(item => {
+        const price = getFlashPrice(item) || item.discountedPrice;
+        db.ref('orders').push({
+          item:      item.title,
+          price,
+          email:     auth.currentUser.email,
+          date:      Date.now(),
+          paymentId: resp.razorpay_payment_id,
+          status:    'completed'
         });
-        myPurchases.push(...checkoutItems.map(i=>i.key));
+        db.ref('users/' + auth.currentUser.uid + '/purchases/' + item.key).set(true);
+      });
+      myPurchases.push(...checkoutItems.map(i => i.key));
 
-        // ✅ ORDER CONFIRMATION EMAIL — PHP Resend se
-        callEmail('order_email', {
-          to_email:     auth.currentUser.email,
-          to_name:      auth.currentUser.displayName || 'Customer',
-          product_name: checkoutItems.map(i=>i.title).join(', '),
-          order_total:  '₹' + checkoutFinalAmount.toFixed(2),
-          order_date:   orderDate,
-          payment_id:   resp.razorpay_payment_id
-        });
+      // 2. Send confirmation email (background)
+      callEmail('order_email', {
+        to_email:     auth.currentUser.email,
+        to_name:      auth.currentUser.displayName || 'Customer',
+        product_name: checkoutItems.map(i => i.title).join(', '),
+        order_total:  '₹' + checkoutFinalAmount.toFixed(2),
+        order_date:   orderDate,
+        payment_id:   resp.razorpay_payment_id
+      });
 
-        showToast("Order placed! Check your email 📧");
-        if(cart.some(c=>c.key===checkoutItems[0]?.key)){cart=[];localStorage.setItem('anifoldCart','[]');updateCartCount();toggleCart(false);}
-        nav('library');
-      },
+      // 3. Clear cart and redirect
+      if(cart.some(c => c.key === checkoutItems[0]?.key)){
+        cart = [];
+        localStorage.setItem('anifoldCart', '[]');
+        updateCartCount();
+        toggleCart(false);
+      }
+      showToast("🎉 Order placed! Redirecting to library...");
+      setTimeout(() => nav('library'), 800);
+    },
 
-      prefill: {email: auth.currentUser.email},
-      theme: {color: "#702122"},
-      modal: {ondismiss: ()=>{btn.disabled=false;btn.innerText="PLACE ORDER →";}}
-    });
-
-    rzp.on('payment.failed', r=>{showToast("Payment failed: "+r.error.description,'error');btn.disabled=false;btn.innerText="PLACE ORDER →";});
-    rzp.open();
-  })
-  .catch(e=>{
-    const msg = e.message === 'Failed to fetch' ? 'Server error — check your internet or try again.' : 'Connection error. Please try again.';
-    showToast(msg,'error');
-    btn.disabled=false; btn.innerText="PLACE ORDER →";
+    prefill: {
+      email: auth.currentUser.email,
+      name:  auth.currentUser.displayName || ''
+    },
+    theme:  { color: "#702122" },
+    modal:  {
+      ondismiss: () => {
+        btn.disabled = false;
+        btn.innerText = "PLACE ORDER →";
+      }
+    }
   });
+
+  rzp.on('payment.failed', r => {
+    showToast("Payment failed: " + (r.error.description || 'Try again'), 'error');
+    btn.disabled = false;
+    btn.innerText = "PLACE ORDER →";
+  });
+
+  rzp.open();
 };
 
 // ====== LIBRARY ======
