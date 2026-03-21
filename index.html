@@ -547,7 +547,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
   </div>
 
   <footer class="footer-dark" id="main-footer">
-    <img id="foot-logo" style="height:32px;opacity:0.7;margin-bottom:12px;display:none;" src="">
+    
     <div id="footer-socials" style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;"></div>
     <div class="footer-links-container">
       <a class="footer-link" onclick="openPolicy('terms')" style="cursor:pointer;">Terms</a>
@@ -693,7 +693,12 @@ window.doGoogleLogin = () => {
     });
     showToast("Welcome, " + u.displayName + "! 🎉");
     nav('home');
-  }).catch(e => showToast(e.message, 'error'));
+  }).catch(e => {
+    const msg = e.code === 'auth/popup-closed-by-user' ? 'Login cancelled.' :
+                e.code === 'auth/network-request-failed' ? 'No internet connection.' :
+                'Google login failed. Please try again.';
+    showToast(msg, 'error');
+  });
 };
 
 auth.onAuthStateChanged(u => {
@@ -875,12 +880,7 @@ db.ref('meta').on('value', s=>{
       hl.onerror=()=>{hl.style.display='none';};
       try{const sl=document.getElementById('side-logo');sl.src=v.brand.headerLogoUrl;sl.style.display='block';}catch(e){}
     }
-    if(v.brand.footerLogoUrl){
-      const fl=document.getElementById('foot-logo');
-      fl.src=v.brand.footerLogoUrl;
-      fl.style.display='block';
-      fl.onerror=()=>{fl.style.display='none';};
-    }
+    // Footer logo removed per user preference
     if(v.brand.heroImageUrl){
       const hi=document.getElementById('hero-img');
       hi.src=v.brand.heroImageUrl;
@@ -1011,7 +1011,10 @@ window.openProductPage = key=>{
   updateWishlistBtn();
   loadProductReviews(key);
   renderGrid(allProducts.filter(p=>p.category===currentProduct.category&&p.key!==key).slice(0,4),'related-grid');
-  nav('product-page');
+  // Show product page WITHOUT overwriting the #product/KEY URL
+  ['home','library','auth','contact','category','product-page','checkout','dashboard','wishlist'].forEach(v=>document.getElementById('view-'+v).classList.add('hidden'));
+  document.getElementById('view-product-page').classList.remove('hidden');
+  closeAllDrawers(); window.scrollTo(0,0);
 };
 window.changeSlide = dir=>{currentSlideIdx=(currentSlideIdx+dir+currentImages.length)%currentImages.length;updateSlider();updateThumbHL();};
 function updateSlider(){const img=document.getElementById('pd-img');img.src=currentImages[currentSlideIdx];img.classList.remove('zoomed');}
@@ -1242,7 +1245,21 @@ window.handleAuth = () => {
   if(isLoginMode) {
     auth.signInWithEmailAndPassword(e,p)
       .then(()=>nav('home'))
-      .catch(er=>{showToast(er.message,'error');btn.innerText="SUBMIT";btn.disabled=false;});
+      .catch(er=>{
+        // Parse Firebase error cleanly
+        const codeMap = {
+          'auth/user-not-found': 'No account found with this email.',
+          'auth/wrong-password': 'Incorrect password.',
+          'auth/invalid-credential': 'Email or password is incorrect.',
+          'auth/invalid-email': 'Please enter a valid email.',
+          'auth/user-disabled': 'This account has been disabled.',
+          'auth/too-many-requests': 'Too many attempts. Please wait and try again.',
+          'auth/network-request-failed': 'No internet connection.',
+        };
+        const msg = codeMap[er.code] || 'Login failed. Please check your email and password.';
+        showToast(msg, 'error');
+        btn.innerText="SUBMIT"; btn.disabled=false;
+      });
   } else {
     const cp=document.getElementById('auth-cpass').value, fn=document.getElementById('reg-fname').value;
     const ln=document.getElementById('reg-lname').value, mob=document.getElementById('reg-mobile').value;
@@ -1258,7 +1275,16 @@ window.handleAuth = () => {
 
       nav('home');
       showToast("Welcome to Anifold! 🎉");
-    }).catch(er=>{showToast(er.message,'error');btn.innerText="SUBMIT";btn.disabled=false;});
+    }).catch(er=>{
+        const codeMap = {
+          'auth/email-already-in-use': 'This email is already registered. Please login.',
+          'auth/weak-password': 'Password must be at least 6 characters.',
+          'auth/invalid-email': 'Please enter a valid email address.',
+          'auth/network-request-failed': 'No internet connection.',
+        };
+        const msg = codeMap[er.code] || 'Signup failed. Please try again.';
+        showToast(msg, 'error'); btn.innerText="SUBMIT"; btn.disabled=false;
+      });
   }
 };
 
