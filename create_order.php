@@ -1,4 +1,8 @@
 <?php
+
+$RESEND_API_KEY = "re_NDfXidA1_3bAJr9iNLuH9Dtcevud4TCf2";  // Resend se copy ki
+$FROM_EMAIL     = "noreply@anifold.shop"; // Verified domain wala
+
 // Razorpay PHP library ko include karein
 // (Aapko Razorpay PHP SDK folder bhi yahin upload karna hoga)
 require('razorpay-php/Razorpay.php');
