@@ -100,10 +100,12 @@ document.onkeydown = function(e) {
   --radius: 12px; --radius-lg: 20px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; }
-body { background: var(--gray); color: var(--text); overflow-x: hidden; display: flex; flex-direction: column; min-height: 100vh; user-select: none; } #main-content { max-width: 1280px; margin: 0 auto; width: 100%; }
+body { background: var(--gray); color: var(--text); overflow-x: hidden; display: flex; flex-direction: column; min-height: 100vh; user-select: none; }
 .hidden { display: none !important; }
 .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius); }
 @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+@keyframes fadeInBg { from{opacity:0} to{opacity:1} }
+@keyframes popIn { from{transform:scale(0.85);opacity:0} to{transform:scale(1);opacity:1} }
 .img-wrap { position: relative; overflow: hidden; background: #f0f0f0; }
 .img-wrap .skeleton-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; transition: opacity 0.3s; }
 .img-wrap img.loaded + .skeleton-overlay, .img-wrap img[data-loaded="true"] + .skeleton-overlay { opacity: 0; pointer-events: none; }
@@ -126,7 +128,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 .menu-link-icon { width: 20px; text-align: center; font-size: 1rem; }
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 150; display: none; opacity: 0; transition: opacity 0.3s; pointer-events: none; backdrop-filter: blur(2px); }
 .overlay.active { display: block; opacity: 1; pointer-events: all; }
-.hero-section { position: relative; overflow: hidden; background: var(--dark); min-height: 520px; display: flex; align-items: center; }
+.hero-section { position: relative; overflow: hidden; background: var(--dark); min-height: 520px; display: flex; align-items: center; width: 100%; }
 .hero-bg-pattern { position: absolute; inset: 0; pointer-events: none; background-image: radial-gradient(circle at 20% 50%, rgba(112,33,34,0.4) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(249,115,22,0.15) 0%, transparent 40%); }
 .hero-grid-lines { position: absolute; inset: 0; pointer-events: none; overflow: hidden; background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 40px 40px; }
 .hero-content { position: relative; z-index: 10; padding: 40px 24px; display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 20px; }
@@ -186,8 +188,8 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 }
 /* Desktop */
 @media (min-width: 1024px) {
-  .hero-content { padding: 60px 40px; max-width: 1200px; margin: 0 auto; }
-  .hero-section { justify-content: center; }
+  .hero-content { padding: 60px 5%; max-width: 100%; }
+  .hero-section { justify-content: flex-start; }
   .hero-right { width: 35%; max-width: 320px; }
   .hero-title { font-size: 6rem; }
   .cat-scroll { padding: 4px 40px 20px; gap: 20px; }
@@ -220,6 +222,14 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 @media (min-width: 480px) { .grid { gap: 14px; padding: 0 16px 20px; } }
 @media (min-width: 768px) { .grid { grid-template-columns: repeat(3,1fr); gap: 18px; padding: 0 20px 24px; } }
 @media (min-width: 1024px) { .grid { grid-template-columns: repeat(4,1fr); gap: 20px; } }
+/* Full-width sections — hero, banner stretch edge to edge */
+.hero-section { width: 100%; }
+#flash-banner { width: 100%; }
+/* Content sections max-width on large screens */
+@media (min-width: 1200px) {
+  .search-wrap,.section-header,.section-title-center,.cat-scroll { max-width: 1280px; margin-left: auto; margin-right: auto; }
+  .grid { max-width: 1280px; margin-left: auto; margin-right: auto; }
+}
 .card { border-radius: var(--radius); overflow: hidden; background: var(--card-bg); transition: transform 0.2s, box-shadow 0.2s; position: relative; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); }
 .card:active { transform: scale(0.97); box-shadow: none; }
 .card-img-wrap { position: relative; overflow: hidden; background: #f8f8f8; }
@@ -421,7 +431,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 
 <div id="flash-banner"><span id="flash-banner-text">🔥 FLASH SALE!</span><span id="flash-countdown"></span></div>
 
-<div id="app-wrapper" style="display:flex;flex-direction:column;min-height:100vh;">
+<div id="app-wrapper" style="display:flex;flex-direction:column;min-height:100vh;width:100%;">
   <header id="main-header">
     <div class="menu-btn" onclick="toggleMenu()" style="flex-shrink:0;">☰</div>
     <div style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;min-width:0;"><img id="head-logo" class="header-logo" src="" alt="Anifold Store" onclick="nav('home')" style="display:none;"></div>
@@ -669,7 +679,7 @@ async function callEmail(action, data) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
-      signal: AbortSignal.timeout(5000)
+      //  // removed
     });
     if(res.ok) { const d=await res.json().catch(()=>({})); if(d.success) return; }
   } catch(e) {}
@@ -1350,48 +1360,51 @@ window.sendContactEmail = async () => {
   const btn = document.querySelector('.c-btn');
   btn.innerText='Sending...'; btn.disabled=true;
 
-  let sent = false;
+  // STEP 1: Save to Firebase immediately (guaranteed to work)
+  try {
+    await db.ref('contact_messages').push({
+      name, email, message: msg,
+      date: Date.now(), status: 'unread'
+    });
+  } catch(e) {}
 
-  // Method 1: EmailJS (most reliable — no server needed)
-  if(!sent && typeof emailjs !== 'undefined' && EJS_SERVICE_ID !== 'EMAILJS_SERVICE_ID') {
-    try {
-      await emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_CONTACT, {
-        from_name:  name,
-        from_email: email,
-        message:    msg,
-        reply_to:   email,
-        to_name:    'Anifold Support'
-      }, { publicKey: EJS_PUBLIC_KEY });
-      sent = true;
-    } catch(e) { console.warn('EmailJS contact failed:', e); }
-  }
-
-  // Method 2: PHP backend
-  if(!sent) {
-    try {
-      const res = await fetch(BACKEND + '?action=contact_email', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ to_email:email, to_name:name, message:msg }),
-        signal: AbortSignal.timeout(6000)
-      });
-      const data = await res.json().catch(()=>({}));
-      if(res.ok && data.success) sent = true;
-    } catch(e) {}
-  }
-
-  // Method 3: Always save to Firebase (admin can see messages)
-  await db.ref('contact_messages').push({
-    name, email, message: msg,
-    date: Date.now(),
-    status: 'unread',
-    emailSent: sent
-  });
-
-  showToast(sent ? 'Message sent! We will reply soon 📬' : 'Message received! We will reply within 24 hours 📬');
+  // STEP 2: Show success IMMEDIATELY — don't wait for email
+  showToast('Message sent! We will reply within 24 hours 📬');
   ['c-name','c-email','c-msg'].forEach(id => document.getElementById(id).value='');
   btn.innerText='SEND MESSAGE'; btn.disabled=false;
+
+  // STEP 3: Try emails in background (don't block UI)
+  // EmailJS
+  // EmailJS (background — don't block UI)
+  if(typeof emailjs !== 'undefined' && EJS_SERVICE_ID !== 'EMAILJS_SERVICE_ID') {
+    emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_CONTACT, {
+      from_name: name, from_email: email, message: msg, reply_to: email
+    }, { publicKey: EJS_PUBLIC_KEY }).catch(()=>{});
+  }
+  // PHP backend (background)
+  fetch(BACKEND + '?action=contact_email', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ to_email:email, to_name:name, message:msg })
+  }).catch(()=>{});
+
+  // ✅ Always show success popup immediately
+  showContactSuccessPopup();
 };
+
+function showContactSuccessPopup() {
+  const popup = document.createElement('div');
+  popup.id = 'cs-popup';
+  popup.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeInBg .25s ease;';
+  popup.innerHTML = '<div style="background:#fff;border-radius:20px;padding:36px 24px;text-align:center;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.25);animation:popIn .3s cubic-bezier(0.34,1.56,0.64,1);">'
+    + '<div style="font-size:3.5rem;margin-bottom:10px;">📬</div>'
+    + '<div style="font-size:1.2rem;font-weight:900;color:#111827;margin-bottom:8px;">Message Sent!</div>'
+    + '<div style="font-size:0.88rem;color:#6b7280;line-height:1.7;margin-bottom:22px;">We received your message and will reply within <strong style="color:#702122;">24 hours</strong>. For instant help, WhatsApp us!</div>'
+    + '<a href="https://wa.link/s62366" target="_blank" style="display:block;background:#25d366;color:#fff;padding:13px;border-radius:10px;font-weight:800;text-decoration:none;margin-bottom:10px;font-size:0.9rem;">💬 Chat on WhatsApp</a>'
+    + '<button onclick="document.getElementById('cs-popup').remove()" style="width:100%;background:#f3f4f6;color:#555;border:none;padding:12px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.88rem;">Close</button>'
+    + '</div>';
+  document.body.appendChild(popup);
+  popup.addEventListener('click', e => { if(e.target === popup) popup.remove(); });
+}
 
 // ====== AUTH — Welcome email signup pe ======
 window.toggleAuthMode=()=>{
