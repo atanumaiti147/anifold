@@ -158,8 +158,8 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 .card { border-radius: var(--radius); overflow: hidden; background: var(--card-bg); transition: transform 0.2s, box-shadow 0.2s; position: relative; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); }
 .card:active { transform: scale(0.97); box-shadow: none; }
 .card-img-wrap { position: relative; overflow: hidden; background: #f8f8f8; }
-.card-img-wrap img { width: 100%; height: 170px; object-fit: cover; display: block; opacity: 0; transition: opacity 0.4s; }
-.card-img-wrap img.img-loaded { opacity: 1; }
+.card-img-wrap img { width: 100%; height: 170px; object-fit: cover; display: block; opacity: 1; transition: opacity 0.2s; background: #f4f4f5; }
+.card-img-wrap img.img-loaded { opacity: 1; } .card-img-wrap img[data-src] { opacity: 0; } .card-img-wrap img[data-src].img-loaded { opacity: 1; }
 .card-img-wrap .sk { position: absolute; inset: 0; }
 .card:hover .card-img-wrap img { transform: scale(1.04); }
 .card-body { padding: 10px 12px 12px; }
@@ -333,7 +333,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 
 <div id="policy-full-page" class="hidden">
   <div style="max-width:800px;margin:0 auto;padding-bottom:50px;">
-    <button onclick="window.location.href='index.html'" style="background:none;border:none;font-size:1rem;cursor:pointer;margin-bottom:15px;color:var(--primary);font-weight:700;">← Back</button>
+    <button onclick="closePolicy()" style="background:none;border:none;font-size:1rem;cursor:pointer;margin-bottom:15px;color:var(--primary);font-weight:700;">← Back</button>
     <div id="pf-title" style="font-size:1.6rem;font-weight:900;margin-bottom:20px;border-bottom:3px solid var(--primary);padding-bottom:12px;"></div>
     <div id="pf-content" style="line-height:1.8;color:#444;font-size:0.95rem;"></div>
   </div>
@@ -359,7 +359,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 <div id="app-wrapper" style="display:flex;flex-direction:column;min-height:100vh;">
   <header id="main-header">
     <div class="menu-btn" onclick="toggleMenu()">☰</div>
-    <div><img id="head-logo" class="header-logo" src="" alt="Anifold Store" onclick="nav('home')" onerror="this.style.display='none'"></div>
+    <div><img id="head-logo" class="header-logo" src="" alt="Anifold Store" onclick="nav('home')" style="display:none;"></div>
     <div class="header-right">
       <button class="pwa-install-btn" id="pwa-header-btn">📲 Install</button>
       <div class="cart-icon-wrap" onclick="toggleCart(true)">
@@ -385,7 +385,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 
   <div id="main-content" style="flex:1;">
     <div id="view-home">
-      <section class="hero-section" id="hero-sec" style="display:none;">
+      <section class="hero-section" id="hero-sec">
         <div class="hero-bg-pattern"></div>
         <div class="hero-grid-lines"></div>
         <div class="hero-content">
@@ -419,12 +419,12 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
     </div>
 
     <div id="view-category" class="hidden">
-      <div style="background:var(--dark);color:white;padding:14px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:64px;z-index:90;"><div onclick="nav('home')" style="font-size:1.3rem;font-weight:bold;cursor:pointer;opacity:0.7;">←</div><div id="cat-page-title" style="font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">CATEGORY</div></div>
+      <div style="background:var(--dark);color:white;padding:14px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:64px;z-index:90;"><div onclick="history.back()" style="font-size:1.3rem;font-weight:bold;cursor:pointer;opacity:0.7;">←</div><div id="cat-page-title" style="font-weight:800;text-transform:uppercase;letter-spacing:0.5px;">CATEGORY</div></div>
       <div id="cat-product-grid" class="grid" style="padding-top:16px;"></div>
     </div>
 
     <div id="view-product-page" class="hidden pd-container">
-      <button class="back-btn" onclick="nav('home')">←</button>
+      <button class="back-btn" onclick="history.back()">←</button>
       <button class="pd-wishlist-btn" id="pd-wishlist-btn" onclick="toggleWishlistCurrent()">🤍</button>
       <div class="pd-image-box">
         <button class="pd-arrow left" onclick="changeSlide(-1)">❮</button>
@@ -547,13 +547,13 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
   </div>
 
   <footer class="footer-dark" id="main-footer">
-    <img id="foot-logo" style="height:32px;opacity:0.7;margin-bottom:12px;" src="" onerror="this.style.display='none'">
+    <img id="foot-logo" style="height:32px;opacity:0.7;margin-bottom:12px;display:none;" src="">
     <div id="footer-socials" style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;"></div>
     <div class="footer-links-container">
-      <a class="footer-link" href="?page=terms">Terms</a>
-      <a class="footer-link" href="?page=privacy">Privacy</a>
-      <a class="footer-link" href="?page=refund">Refund</a>
-      <a class="footer-link" href="?page=about">About</a>
+      <a class="footer-link" onclick="openPolicy('terms')" style="cursor:pointer;">Terms</a>
+      <a class="footer-link" onclick="openPolicy('privacy')" style="cursor:pointer;">Privacy</a>
+      <a class="footer-link" onclick="openPolicy('refund')" style="cursor:pointer;">Refund</a>
+      <a class="footer-link" onclick="openPolicy('about')" style="cursor:pointer;">About</a>
     </div>
     <p class="footer-copy">© 2025 Anifold Store. All Rights Reserved.</p>
   </footer>
@@ -599,17 +599,26 @@ async function callEmail(action, data) {
   } catch(e) { /* silent — order block na ho */ }
 }
 
-// ====== POLICY CHECK ======
-const params = new URLSearchParams(window.location.search);
-const pageParam = params.get('page');
-if(pageParam) {
+// ====== POLICY PAGE — hash based ======
+function openPolicy(type) {
+  const titles={terms:'Terms & Conditions',privacy:'Privacy Policy',refund:'Refund Policy',about:'About Us'};
+  if(!titles[type]) return;
+  const pg = document.getElementById('policy-full-page');
+  pg.classList.remove('hidden');
   document.getElementById('app-wrapper').style.display='none';
-  document.getElementById('policy-full-page').classList.remove('hidden');
-  const titles={terms:'TERMS & CONDITIONS',privacy:'PRIVACY POLICY',refund:'REFUND POLICY',about:'ABOUT US'};
-  if(titles[pageParam]) {
-    document.getElementById('pf-title').innerText=titles[pageParam];
-    db.ref('meta/policies/'+pageParam).once('value').then(s=>{document.getElementById('pf-content').innerText=s.val()||"Content coming soon.";});
-  } else window.location.href="index.html";
+  document.getElementById('pf-title').innerText=titles[type];
+  document.getElementById('pf-content').innerText='Loading...';
+  history.pushState({policy: type}, titles[type]+' — Anifold Store', '#policy/'+type);
+  document.title = titles[type] + ' — Anifold Store';
+  db.ref('meta/policies').once('value').then(s=>{
+    const v=s.val()||{};
+    document.getElementById('pf-content').innerText=v[type]||'Content coming soon.';
+  });
+}
+function closePolicy() {
+  document.getElementById('policy-full-page').classList.add('hidden');
+  document.getElementById('app-wrapper').style.display='flex';
+  history.back();
 }
 
 // ====== STATE ======
@@ -690,6 +699,11 @@ window.doGoogleLogin = () => {
 auth.onAuthStateChanged(u => {
   const aEls=document.querySelectorAll('.auth-only');
   const gEls=document.querySelectorAll('.guest-only');
+  // Handle initial hash once auth is known
+  if(!window._authReady) {
+    window._authReady = true;
+    if(!window._hashHandled) { window._hashHandled = true; setTimeout(handleInitialHash, 100); }
+  }
   if(u) {
     myPurchases=[];
     db.ref('users/'+u.uid+'/purchases').once('value').then(s=>{if(s.exists())myPurchases=Object.keys(s.val());});
@@ -724,37 +738,159 @@ function storePushSub(uid) {
 // ====== NAVIGATION ======
 window.toggleMenu = () => {document.getElementById('side-menu').classList.toggle('open');document.getElementById('overlay').classList.toggle('active');};
 window.closeAllDrawers = () => {document.getElementById('side-menu').classList.remove('open');document.getElementById('cart-sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('active');};
-window.nav = (id) => {
-  ['home','library','auth','contact','category','product-page','checkout','dashboard','wishlist'].forEach(v=>document.getElementById('view-'+v).classList.add('hidden'));
+// ====== URL HASH ROUTING ======
+const ALL_VIEWS = ['home','library','auth','contact','category','product-page','checkout','dashboard','wishlist'];
+
+window.nav = (id, pushState=true) => {
+  ALL_VIEWS.forEach(v => document.getElementById('view-'+v).classList.add('hidden'));
   document.getElementById('view-'+id).classList.remove('hidden');
   document.getElementById('main-header').classList.remove('hidden');
   document.getElementById('main-footer').classList.remove('hidden');
   closeAllDrawers(); window.scrollTo(0,0);
+  // Update URL hash
+  if(pushState) {
+    const hash = id === 'home' ? '#' : '#' + id;
+    history.pushState({view: id}, '', hash);
+    document.title = getPageTitle(id);
+  }
   if(id==='home') showRandomHome();
   if(id==='library') renderLibrary();
   if(id==='wishlist') renderWishlistView();
   if(id==='dashboard') loadDashboard();
 };
 
+function getPageTitle(id) {
+  const titles = {
+    home: 'Anifold Store — Anime Papercraft Templates',
+    auth: 'Login — Anifold Store',
+    library: 'My Library — Anifold Store',
+    dashboard: 'My Account — Anifold Store',
+    wishlist: 'Wishlist — Anifold Store',
+    contact: 'Support — Anifold Store',
+    checkout: 'Checkout — Anifold Store',
+  };
+  return titles[id] || 'Anifold Store';
+}
+
+// Back/Forward browser button support
+window.addEventListener('popstate', (e) => {
+  // Close policy page if open
+  const pg = document.getElementById('policy-full-page');
+  if(!pg.classList.contains('hidden')) {
+    pg.classList.add('hidden');
+    document.getElementById('app-wrapper').style.display='flex';
+  }
+  if(e.state && e.state.view) {
+    nav(e.state.view, false);
+  } else if(e.state && e.state.policy) {
+    openPolicy(e.state.policy);
+  } else {
+    handleInitialHash();
+  }
+});
+
+// Product page — special URL like #product/KEY
+window._openProductFromHash = (key) => {
+  if(!key) return;
+  const tryOpen = () => {
+    if(allProducts.length) {
+      openProductPage(key);
+    } else {
+      setTimeout(tryOpen, 200);
+    }
+  };
+  tryOpen();
+};
+
+// Category page — special URL like #category/NAME
+window._openCategoryFromHash = (name) => {
+  if(!name) return;
+  const tryOpen = () => {
+    if(allProducts.length) {
+      openCategoryView(decodeURIComponent(name));
+    } else {
+      setTimeout(tryOpen, 200);
+    }
+  };
+  tryOpen();
+};
+
+// Handle initial load from hash
+function handleInitialHash() {
+  const hash = window.location.hash.replace('#','');
+  if(!hash || hash === '') { nav('home', false); return; }
+  if(hash.startsWith('product/')) {
+    const key = hash.replace('product/','');
+    nav('home', false);
+    window._openProductFromHash(key);
+  } else if(hash.startsWith('category/')) {
+    const cat = hash.replace('category/','');
+    nav('home', false);
+    window._openCategoryFromHash(cat);
+  } else if(hash.startsWith('policy/')) {
+    const type = hash.replace('policy/','');
+    openPolicy(type);
+  } else {
+    const views = ['library','auth','contact','dashboard','wishlist','checkout'];
+    if(views.includes(hash)) nav(hash, false);
+    else nav('home', false);
+  }
+}
+
+
 // ====== LOAD DATA ======
 db.ref('products').on('value', s=>{
   allProducts=[];
-  document.getElementById('loading-spinner').style.display='none';
-  if(s.exists()){Object.entries(s.val()).forEach(([k,v])=>allProducts.push({key:k,...v}));showRandomHome();updateCartCount();}
-  document.getElementById('hero-product-count').textContent=(allProducts.length||0)+'+';
+  const spinner=document.getElementById('loading-spinner');
+  if(spinner) spinner.style.display='none';
+  if(s.exists()){
+    Object.entries(s.val()).forEach(([k,v])=>allProducts.push({key:k,...v}));
+    // Only show home products if currently on home view
+    const homeView=document.getElementById('view-home');
+    if(homeView && !homeView.classList.contains('hidden')){
+      showRandomHome();
+    }
+    updateCartCount();
+  }
+  const cnt=document.getElementById('hero-product-count');
+  if(cnt) cnt.textContent=(allProducts.length||0)+'+';
+  // Handle hash routing after products load (for direct links)
+  if(!window._hashHandled){window._hashHandled=true;window.setTimeout(handleInitialHash,50);}
 });
 db.ref('categories').on('value', s=>{
   const c=document.getElementById('cat-container');c.innerHTML='';
-  if(s.exists()) s.forEach(snp=>{const v=snp.val();c.innerHTML+=`<div class="cat-item" onclick="openCategoryView('${v.name}')"><div class="cat-circle"><img data-src="${v.image}" alt="${v.name}" loading="lazy" style="width:100%;height:100%;object-fit:contain;padding:8px;"></div><span class="cat-name">${v.name}</span></div>`;});
-  observeImages();
+  if(s.exists()) s.forEach(snp=>{
+    const v=snp.val();
+    // Use src directly for category icons (small images, no lazy load needed)
+    c.innerHTML+=`<div class="cat-item" onclick="openCategoryView('${v.name}')"><div class="cat-circle"><img src="${v.image||''}" alt="${v.name}" style="width:100%;height:100%;object-fit:contain;padding:8px;" onerror="this.style.display='none'"></div><span class="cat-name">${v.name}</span></div>`;
+  });
 });
 db.ref('meta').on('value', s=>{
   const v=s.val()||{};
   if(v.brand){
-    if(v.brand.headerLogoUrl){document.getElementById('head-logo').src=v.brand.headerLogoUrl;try{document.getElementById('side-logo').src=v.brand.headerLogoUrl;}catch(e){}}
-    if(v.brand.footerLogoUrl) document.getElementById('foot-logo').src=v.brand.footerLogoUrl;
-    if(v.brand.heroImageUrl){document.getElementById('hero-img').src=v.brand.heroImageUrl;document.getElementById('hero-sec').style.display='flex';}
-    else document.getElementById('hero-sec').style.display='flex';
+    if(v.brand.headerLogoUrl){
+      const hl=document.getElementById('head-logo');
+      hl.src=v.brand.headerLogoUrl;
+      hl.style.display='block';
+      hl.onerror=()=>{hl.style.display='none';};
+      try{const sl=document.getElementById('side-logo');sl.src=v.brand.headerLogoUrl;sl.style.display='block';}catch(e){}
+    }
+    if(v.brand.footerLogoUrl){
+      const fl=document.getElementById('foot-logo');
+      fl.src=v.brand.footerLogoUrl;
+      fl.style.display='block';
+      fl.onerror=()=>{fl.style.display='none';};
+    }
+    if(v.brand.heroImageUrl){
+      const hi=document.getElementById('hero-img');
+      hi.src=v.brand.heroImageUrl;
+      hi.style.display='block';
+      hi.onerror=()=>{hi.style.display='none';};
+    }
+    if(v.brand.faviconUrl){
+      const favicon=document.querySelector('link[rel="icon"]');
+      if(favicon) favicon.href=v.brand.faviconUrl;
+    }
   }
   if(v.payment){taxSettings.value=parseFloat(v.payment.taxValue||0);taxSettings.type=v.payment.taxType||'percent';razorpayKey=v.payment.keyId||razorpayKey;}
   if(v.razorpay) razorpayKey=v.razorpay.keyId||razorpayKey;
@@ -793,7 +929,14 @@ function getFlashPrice(p) {
 
 // ====== PRODUCT GRID ======
 window.showRandomHome = ()=>{if(allProducts.length)renderGrid([...allProducts].sort(()=>0.5-Math.random()).slice(0,8),'product-grid');};
-window.openCategoryView = (cat)=>{document.getElementById('cat-page-title').innerText=cat;nav('category');renderGrid(allProducts.filter(p=>p.category===cat),'cat-product-grid');};
+window.openCategoryView = (cat)=>{
+  document.getElementById('cat-page-title').innerText=cat;
+  // Update URL
+  history.pushState({view:'category', cat}, cat+' — Anifold Store', '#category/'+encodeURIComponent(cat));
+  document.title = cat + ' — Anifold Store';
+  ALL_VIEWS.forEach(v=>document.getElementById('view-'+v).classList.add('hidden'));
+  document.getElementById('view-category').classList.remove('hidden');
+  closeAllDrawers(); window.scrollTo(0,0);renderGrid(allProducts.filter(p=>p.category===cat),'cat-product-grid');};
 window.handleSearch = q=>{if(!q)showRandomHome();else renderGrid(allProducts.filter(p=>p.title.toLowerCase().includes(q.toLowerCase())),'product-grid');};
 
 function renderGrid(list, id) {
@@ -807,9 +950,8 @@ function renderGrid(list, id) {
     g.innerHTML+=`<div class="card" onclick="openProductPage('${p.key}')">
       ${fp?'<div class="flash-badge">🔥 SALE</div>':''}
       <button class="wishlist-btn" onclick="event.stopPropagation();toggleWishlist('${p.key}')">${isW?'❤️':'🤍'}</button>
-      <div class="card-img-wrap">
-        <img data-src="${img}" alt="${p.title}" class="card-img" loading="lazy">
-        <div class="sk skeleton" style="position:absolute;inset:0;height:170px;border-radius:0;"></div>
+      <div class="card-img-wrap" style="min-height:170px;">
+        <img src="${img}" alt="${p.title}" class="card-img img-loaded" loading="lazy" onerror="this.style.background='#f0f0f0';this.style.minHeight='170px';">
       </div>
       <div class="card-body">
         <div class="p-title">${p.title}</div>
@@ -822,7 +964,6 @@ function renderGrid(list, id) {
       </div>
     </div>`;
   });
-  document.querySelectorAll('img[data-src]').forEach(img=>imgObserver.observe(img));
 }
 
 // ====== WISHLIST ======
@@ -845,6 +986,9 @@ window.renderWishlistView = ()=>{
 window.openProductPage = key=>{
   currentProduct=allProducts.find(p=>p.key===key);
   if(!currentProduct)return;
+  // Update URL for sharing
+  history.pushState({view:'product-page', key}, currentProduct.title+' — Anifold Store', '#product/'+key);
+  document.title = currentProduct.title + ' — Anifold Store';
   currentImages=currentProduct.images?.length?currentProduct.images:(currentProduct.imageUrl?[currentProduct.imageUrl]:['']);
   currentSlideIdx=0;updateSlider();renderThumbStrip();
   document.getElementById('pd-title').innerText=currentProduct.title;
@@ -1037,9 +1181,8 @@ window.renderLibrary=()=>{
   if(!items.length){g.innerHTML='<div class="library-empty"><div style="font-size:3rem;margin-bottom:12px;">📭</div><div style="font-weight:700;">No purchases yet</div><div style="color:#aaa;margin-top:6px;font-size:0.88rem;">Buy a template to see it here</div></div>';return;}
   items.forEach(p=>{
     const img=p.images?.[0]||p.imageUrl||'';
-    g.innerHTML+=`<div class="card" onclick="openProductPage('${p.key}')"><div class="card-img-wrap"><img data-src="${img}" class="card-img" loading="lazy"><div class="sk skeleton" style="position:absolute;inset:0;height:170px;border-radius:0;"></div></div><div class="card-body"><div class="p-title">${p.title}</div><div class="owned-badge">✓ Download Ready</div></div></div>`;
+    g.innerHTML+=`<div class="card" onclick="openProductPage('${p.key}')"><div class="card-img-wrap" style="min-height:170px;"><img src="${img}" class="card-img img-loaded" loading="lazy" onerror="this.style.background='#f0f0f0';"></div><div class="card-body"><div class="p-title">${p.title}</div><div class="owned-badge">✓ Download Ready</div></div></div>`;
   });
-  observeImages();
 };
 
 // ====== DASHBOARD ======
