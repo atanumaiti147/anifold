@@ -76,7 +76,16 @@ document.onkeydown = function(e) {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-<!-- SDKs — EmailJS HATA DIYA, ab PHP se email hoga -->
+<!-- EmailJS — direct browser se email, no server needed -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  // EmailJS init — replace with your keys from emailjs.com
+  (function(){
+    if(typeof emailjs !== 'undefined') {
+      emailjs.init({ publicKey: "EMAILJS_PUBLIC_KEY" }); // ← emailjs.com se copy karo
+    }
+  })();
+</script>
 <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -640,18 +649,50 @@ const auth = firebase.auth();
 const db = firebase.database();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-// ====== BACKEND URL (PHP — Resend email) ======
+// ====== BACKEND URL ======
 const BACKEND = "https://craftyam.anifold.shop/create_order.php";
 
-// ====== EMAIL HELPER — har jagah se isi se call hota hai ======
+// ====== EMAILJS CONFIG — emailjs.com se keys copy karo ======
+const EJS_SERVICE_ID  = "service_948q7mq";   // emailjs.com → Email Services
+const EJS_PUBLIC_KEY  = "BozK3GzWwohq9RawA";   // emailjs.com → Account → Public Key
+
+// OrderConfirm template variables: to_email, to_name, product_name, order_total, payment_id
+const EJS_TEMPLATE_ORDER   = "support@anifold.shop";    // EmailJS template ID
+// Contact template variables: from_name, from_email, message
+const EJS_TEMPLATE_CONTACT = "template_uxxobnl";  // EmailJS template ID
+
+// ====== UNIVERSAL EMAIL SENDER ======
 async function callEmail(action, data) {
+  // Method 1: Try PHP backend first
   try {
-    await fetch(BACKEND + "?action=" + action, {
+    const res = await fetch(BACKEND + "?action=" + action, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(5000)
     });
-  } catch(e) { /* silent — order block na ho */ }
+    if(res.ok) { const d=await res.json().catch(()=>({})); if(d.success) return; }
+  } catch(e) {}
+
+  // Method 2: EmailJS fallback
+  try {
+    if(typeof emailjs === 'undefined') return;
+    let templateId, params;
+    if(action === 'order_email') {
+      templateId = EJS_TEMPLATE_ORDER;
+      params = { to_email: data.to_email, to_name: data.to_name,
+                 product_name: data.product_name, order_total: data.order_total,
+                 payment_id: data.payment_id, order_date: data.order_date };
+    } else if(action === 'welcome_email') {
+      templateId = EJS_TEMPLATE_WELCOME;
+      params = { to_email: data.to_email, to_name: data.to_name };
+    } else if(action === 'contact_email') {
+      templateId = EJS_TEMPLATE_CONTACT;
+      params = { from_name: data.to_name, from_email: data.to_email, message: data.message,
+                 reply_to: data.to_email };
+    } else return;
+    await emailjs.send(EJS_SERVICE_ID, templateId, params, { publicKey: EJS_PUBLIC_KEY });
+  } catch(e) { console.warn('Email failed:', e); }
 }
 
 // ====== POLICY PAGE — hash based ======
@@ -1303,35 +1344,53 @@ window.sendContactEmail = async () => {
   const name  = document.getElementById('c-name').value.trim();
   const email = document.getElementById('c-email').value.trim();
   const msg   = document.getElementById('c-msg').value.trim();
-  if(!name||!email||!msg){showToast('Fill all fields','error');return;}
+  if(!name||!email||!msg){ showToast('Please fill all fields','error'); return; }
+  if(!email.includes('@')){ showToast('Enter a valid email','error'); return; }
 
   const btn = document.querySelector('.c-btn');
   btn.innerText='Sending...'; btn.disabled=true;
 
-  try {
-    const res = await fetch(BACKEND + '?action=contact_email', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ to_email:email, to_name:name, message:msg })
-    });
-    const data = await res.json().catch(()=>({}));
-    if(res.ok || data.success) {
-      showToast('Message sent! We will reply soon 📬');
-      ['c-name','c-email','c-msg'].forEach(id=>document.getElementById(id).value='');
-    } else {
-      // Backend failed — save to Firebase as fallback
-      db.ref('contact_messages').push({ name, email, message:msg, date:Date.now(), status:'unread' });
-      showToast('Message received! We will get back to you 📬');
-      ['c-name','c-email','c-msg'].forEach(id=>document.getElementById(id).value='');
-    }
-  } catch(e) {
-    // Network error — save to Firebase
-    db.ref('contact_messages').push({ name, email, message:msg, date:Date.now(), status:'unread' });
-    showToast('Message saved! We will reply soon 📬');
-    ['c-name','c-email','c-msg'].forEach(id=>document.getElementById(id).value='');
-  } finally {
-    btn.innerText='SEND MESSAGE'; btn.disabled=false;
+  let sent = false;
+
+  // Method 1: EmailJS (most reliable — no server needed)
+  if(!sent && typeof emailjs !== 'undefined' && EJS_SERVICE_ID !== 'EMAILJS_SERVICE_ID') {
+    try {
+      await emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_CONTACT, {
+        from_name:  name,
+        from_email: email,
+        message:    msg,
+        reply_to:   email,
+        to_name:    'Anifold Support'
+      }, { publicKey: EJS_PUBLIC_KEY });
+      sent = true;
+    } catch(e) { console.warn('EmailJS contact failed:', e); }
   }
+
+  // Method 2: PHP backend
+  if(!sent) {
+    try {
+      const res = await fetch(BACKEND + '?action=contact_email', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ to_email:email, to_name:name, message:msg }),
+        signal: AbortSignal.timeout(6000)
+      });
+      const data = await res.json().catch(()=>({}));
+      if(res.ok && data.success) sent = true;
+    } catch(e) {}
+  }
+
+  // Method 3: Always save to Firebase (admin can see messages)
+  await db.ref('contact_messages').push({
+    name, email, message: msg,
+    date: Date.now(),
+    status: 'unread',
+    emailSent: sent
+  });
+
+  showToast(sent ? 'Message sent! We will reply soon 📬' : 'Message received! We will reply within 24 hours 📬');
+  ['c-name','c-email','c-msg'].forEach(id => document.getElementById(id).value='');
+  btn.innerText='SEND MESSAGE'; btn.disabled=false;
 };
 
 // ====== AUTH — Welcome email signup pe ======
