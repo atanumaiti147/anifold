@@ -11,7 +11,13 @@
 //   (koi action nahi)      → Razorpay order create (original)
 // ============================================================
 
-header("Access-Control-Allow-Origin: https://anifold.shop");
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$allowed = ['https://anifold.shop', 'https://craftyam.anifold.shop'];
+if(in_array($origin, $allowed)) {
+    header("Access-Control-Allow-Origin: $origin");
+} else {
+    header("Access-Control-Allow-Origin: https://anifold.shop");
+}
 header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Content-Type: application/json; charset=UTF-8");
@@ -30,7 +36,7 @@ $RAZORPAY_KEY_SECRET = "1NhInpsQLAeYbjsLE63oXvSH";     // Aapka existing secret 
 $RESEND_API_KEY = "re_NDfXidA1_3bAJr9iNLuH9Dtcevud4TCf2";
 
 // Email sender (resend mein domain verify karo pehle - neeche guide hai)
-$FROM_EMAIL = "noreply@mail.anifold.shop";
+$FROM_EMAIL = "noreply@anifold.shop";
 $FROM_NAME  = "Anifold Store";
 
 // Cloudinary: cloudinary.com → Sign up → Dashboard se copy karo
@@ -131,14 +137,39 @@ function handleResetEmail() {
 // EMAIL 4: CONTACT FORM REPLY
 // ============================================================
 function handleContactEmail() {
+    global $RESEND_API_KEY, $FROM_EMAIL, $FROM_NAME;
     $d        = getInput();
     $to_email = validateEmail($d['to_email'] ?? '');
     $to_name  = clean($d['to_name'] ?? 'Customer');
     $message  = clean($d['message'] ?? '');
 
+    // 1. Send confirmation to customer
     $subject = "Aapka Message Mila — Anifold Store";
     $html    = tpl_contact($to_name, $message);
     resend($to_email, $to_name, $subject, $html);
+
+    // 2. Notify admin (atanumaity92048@gmail.com) about new message
+    $admin_html = '<html><body style="font-family:Arial;padding:20px;">
+        <h2 style="color:#702122;">New Contact Message!</h2>
+        <p><b>From:</b> ' . $to_name . ' (' . $to_email . ')</p>
+        <p><b>Message:</b></p>
+        <blockquote style="background:#f5f5f5;padding:12px;border-left:4px solid #702122;">' . $message . '</blockquote>
+        <p><a href="mailto:' . $to_email . '" style="background:#702122;color:white;padding:10px 20px;text-decoration:none;border-radius:6px;">Reply to Customer</a></p>
+    </body></html>';
+    $admin_payload = json_encode([
+        'from'    => "{$FROM_NAME} <{$FROM_EMAIL}>",
+        'to'      => ['atanumaity92048@gmail.com'],
+        'subject' => "New Contact: $to_name wants to connect",
+        'html'    => $admin_html,
+    ]);
+    $ch2 = curl_init('https://api.resend.com/emails');
+    curl_setopt_array($ch2, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $admin_payload,
+        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'Authorization: Bearer ' . $RESEND_API_KEY],
+    ]);
+    curl_exec($ch2); curl_close($ch2);
 }
 
 // ============================================================
