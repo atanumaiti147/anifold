@@ -403,20 +403,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 #policy-full-page { position: fixed; inset: 0; background: white; z-index: 9999; padding: 20px; overflow-y: auto; }
 </style>
 </head>
-<script>
-// Kill any existing service workers (they were causing caching issues)
-if('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-    regs.forEach(function(r){ r.unregister(); });
-  });
-  // Also clear all caches
-  if('caches' in window) {
-    caches.keys().then(function(names) {
-      names.forEach(function(n){ caches.delete(n); });
-    });
-  }
-}
-</script>
+
 <body>
 <div id="toast-container"></div>
 
@@ -845,6 +832,28 @@ const firebaseConfig = {
   appId: "1:555175386696:web:5d837cf1777f9fc01f827d"
 };
 try { firebase.initializeApp(firebaseConfig); } catch(e){}
+// Register new service worker (clears all old caches)
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+    // If new SW is waiting, activate immediately
+    if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+    reg.addEventListener('updatefound', function() {
+      var newWorker = reg.installing;
+      newWorker.addEventListener('statechange', function() {
+        if(newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          newWorker.postMessage({type:'SKIP_WAITING'});
+        }
+      });
+    });
+  }).catch(function(){});
+  // Listen for SW telling us to reload
+  navigator.serviceWorker.addEventListener('message', function(e) {
+    if(e.data && e.data.type === 'SW_UPDATED') {
+      // SW updated and cleared caches - reload to get fresh content
+      if(!window._swReloaded) { window._swReloaded = true; window.location.reload(true); }
+    }
+  });
+}
 const auth = firebase.auth();
 const db = firebase.database();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
@@ -1289,9 +1298,7 @@ db.ref('products').on('value', s=>{
   if(cnt) cnt.textContent=(allProducts.length||0)+'+';
   // Handle hash routing after products load (for direct links)
   if(!window._hashHandled){window._hashHandled=true;window.setTimeout(handleInitialHash,50);}
-  // Fallback: hide spinner after 3 seconds even if products don't load
-  const _sp = document.getElementById('loading-spinner');
-  if(_sp) setTimeout(function(){ _sp.style.display='none'; }, 3000);
+
 });
 // Fallback: 5 seconds — if spinner still showing, hide it
 setTimeout(function(){
