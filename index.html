@@ -552,7 +552,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
           </div>
         </div>
       </section>
-      <div class="search-wrap"><div class="search-container" style="position:relative;"><span class="search-icon">🔍</span><input type="text" id="search-input" class="search-input" placeholder="Search Naruto, One Piece, Demon Slayer..." oninput="handleSearch(this.value)" autocomplete="off"></div></div>
+      <div class="search-wrap"><div class="search-container" style="position:relative;"><span class="search-icon">🔍</span><input type="text" id="search-input" class="search-input" placeholder="Search Naruto, One Piece, Demon Slayer..." oninput="handleSearch(this.value)" autocomplete="new-password" name="product-search"></div></div>
       <div class="section-title-center">TOP <span>CATEGORIES</span></div>
       <div class="cat-scroll" id="cat-container"></div>
       <div class="section-header"><div class="section-title">✨ Featured Drops</div><div class="refresh-btn" onclick="showRandomHome()">🔄 Refresh</div></div>
@@ -1085,7 +1085,12 @@ window.nav = (id, pushState=true) => {
     history.pushState({view: id}, '', hash);
     document.title = getPageTitle(id);
   }
-  if(id==='home') showRandomHome();
+  if(id==='home') {
+    // Clear search box to prevent autofill-based filtering
+    const si = document.getElementById('search-input');
+    if(si) si.value = '';
+    showRandomHome();
+  }
   if(id==='library') renderLibrary();
   if(id==='wishlist') renderWishlistView();
   if(id==='dashboard') loadDashboard();
@@ -1216,26 +1221,32 @@ db.ref('meta').on('value', s=>{
       localStorage.setItem('af_logo', v.brand.headerLogoUrl);
       const hl=document.getElementById('head-logo');
       const ltxt=document.getElementById('head-logo-text');
-      if(hl.src !== v.brand.headerLogoUrl) {
+      if(!hl.src.endsWith(v.brand.headerLogoUrl.split('/').pop())) {
         hl.onload=()=>{hl.style.display='block';if(ltxt)ltxt.style.display='none';};
         hl.onerror=()=>{hl.style.display='none';if(ltxt)ltxt.style.display='block';};
         hl.src=v.brand.headerLogoUrl;
       }
-      const sl=document.getElementById('side-logo');
-      // Side logo: use sideLogoUrl if admin set one, else fall back to headerLogoUrl
-      if(sl && sl.src !== v.brand.headerLogoUrl){sl.src=v.brand.headerLogoUrl;sl.style.display='block';}
     } else {
       // Default logo — clear any stale cache
       localStorage.removeItem('af_logo');
     }
-    // Side menu logo — can be different from header logo
-    if(v.brand.sideLogoUrl && !_DEF_LOGOS.includes(v.brand.sideLogoUrl)) {
-      localStorage.setItem('af_side', v.brand.sideLogoUrl);
+    // Side menu logo — separate from header logo
+    // Priority: sideLogoUrl > headerLogoUrl > default
+    const sideUrl = v.brand.sideLogoUrl || v.brand.headerLogoUrl || '';
+    if(sideUrl && !_DEF_LOGOS.includes(sideUrl)) {
+      localStorage.setItem('af_side', sideUrl);
       const sl = document.getElementById('side-logo');
-      if(sl && sl.src !== v.brand.sideLogoUrl) { sl.src = v.brand.sideLogoUrl; sl.style.display = 'block'; }
-    } else if(v.brand.sideLogoUrl === '' || (!v.brand.sideLogoUrl && v.brand.headerLogoUrl && !_DEF_LOGOS.includes(v.brand.headerLogoUrl))) {
-      // No separate side logo — use header logo or clear cache
-      if(!v.brand.sideLogoUrl) localStorage.removeItem('af_side');
+      if(sl && sl.getAttribute('src') !== sideUrl) {
+        sl.onerror = function() { sl.style.display='none'; };
+        sl.src = sideUrl;
+        sl.style.display = 'block';
+      }
+    } else {
+      localStorage.removeItem('af_side');
+      // Reset to default
+      const sl = document.getElementById('side-logo');
+      const DEF = 'https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png';
+      if(sl && sl.getAttribute('src') !== DEF) { sl.src = DEF; sl.style.display = 'block'; }
     }
     if(v.brand.heroImageUrl && !_DEF_LOGOS.includes(v.brand.heroImageUrl)) {
       // Admin set a custom hero — save to cache + update DOM
