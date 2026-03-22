@@ -403,6 +403,20 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 #policy-full-page { position: fixed; inset: 0; background: white; z-index: 9999; padding: 20px; overflow-y: auto; }
 </style>
 </head>
+<script>
+// Kill any existing service workers (they were causing caching issues)
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(r){ r.unregister(); });
+  });
+  // Also clear all caches
+  if('caches' in window) {
+    caches.keys().then(function(names) {
+      names.forEach(function(n){ caches.delete(n); });
+    });
+  }
+}
+</script>
 <body>
 <div id="toast-container"></div>
 
@@ -835,12 +849,7 @@ const auth = firebase.auth();
 const db = firebase.database();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 
-// Force SW to skip waiting (ensures fresh code runs, not cached)
-if('serviceWorker' in navigator) {
-  navigator.serviceWorker.ready.then(function(reg) {
-    if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
-  }).catch(function(){});
-}
+
 // Clear corrupted hero cache (if it stored logo URL instead of hero)
 (function(){
   var h = localStorage.getItem('af_hero');
@@ -1009,7 +1018,7 @@ window.addEventListener('beforeinstallprompt', e => {
 });
 document.getElementById('pwa-install-btn').onclick = () => { if(deferredPwaPrompt){deferredPwaPrompt.prompt();deferredPwaPrompt.userChoice.then(()=>{document.getElementById('pwa-prompt').style.display='none';document.getElementById('pwa-header-btn').style.display='none';});} };
 document.getElementById('pwa-header-btn').onclick = () => { if(deferredPwaPrompt) deferredPwaPrompt.prompt(); };
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+// Service Worker disabled to prevent caching issues
 
 // ====== FIREBASE TIMEOUT FALLBACK ======
 // If Firebase data doesn't load in 8s, hide spinner and show retry
@@ -1263,7 +1272,7 @@ function handleInitialHash() {
 db.ref('products').on('value', s=>{
   allProducts=[];
   const spinner=document.getElementById('loading-spinner');
-  if(spinner) { spinner.style.display='none'; spinner.style.visibility='hidden'; }
+  if(spinner) spinner.style.display='none';
   if(s.exists()){
     Object.entries(s.val()).forEach(([k,v])=>allProducts.push({key:k,...v}));
     const homeView=document.getElementById('view-home');
@@ -1296,7 +1305,7 @@ setTimeout(function(){
         '<b>Slow connection.</b> <a href="javascript:location.reload()" style="color:#702122;">Refresh</a></div>';
     }
   }
-},5000);
+},3000);
 db.ref('categories').on('value', s=>{
   const c=document.getElementById('cat-container');c.innerHTML='';
   if(s.exists()) s.forEach(snp=>{
