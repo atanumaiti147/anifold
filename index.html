@@ -558,7 +558,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
     <input type="email" name="email" tabindex="-1" autocomplete="email">
     <input type="text" name="username" tabindex="-1" autocomplete="username">
   </div>
-  <div class="search-container" style="position:relative;"><span class="search-icon">🔍</span><input type="text" id="search-input" class="search-input" placeholder="Search Naruto, One Piece, Demon Slayer..." oninput="handleSearch(this.value)" autocomplete="off" name="srch-x9z7" readonly onfocus="this.removeAttribute('readonly')" style="background:white;"></div></div>
+  <div class="search-container" style="position:relative;"><span class="search-icon">🔍</span><input type="text" id="search-input" class="search-input" placeholder="Search Naruto, One Piece, Demon Slayer..." oninput="doSearch(this.value)" autocomplete="off" style="background:white;"></div></div>
       <div class="section-title-center">TOP <span>CATEGORIES</span></div>
       <div class="cat-scroll" id="cat-container"></div>
       <div class="section-header"><div class="section-title">✨ Featured Drops</div><div class="refresh-btn" onclick="showRandomHome()">🔄 Refresh</div></div>
@@ -1092,12 +1092,11 @@ window.nav = (id, pushState=true) => {
     document.title = getPageTitle(id);
   }
   if(id==='home') {
-    // Aggressively clear search to prevent browser autofill bug
+    // Always clear search and reset state when going home
     const si = document.getElementById('search-input');
-    if(si) {
-      si.value = '';
-      si.blur();
-    }
+    if(si) { si.value = ''; si.blur(); }
+    _userSearching = false;
+    clearTimeout(_searchTimer);
     showRandomHome();
   }
   if(id==='library') renderLibrary();
@@ -1338,7 +1337,10 @@ function getFlashPrice(p) {
 }
 
 // ====== PRODUCT GRID ======
-window.showRandomHome = ()=>{if(allProducts.length)renderGrid([...allProducts].sort(()=>0.5-Math.random()).slice(0,8),'product-grid');};
+window.showRandomHome = function() {
+  if(_userSearching) return; // Don't override active search
+  if(allProducts.length) renderGrid([...allProducts].sort(()=>0.5-Math.random()).slice(0,8),'product-grid');
+};
 window.openCategoryView = (cat)=>{
   document.getElementById('cat-page-title').innerText=cat;
   // Update URL
@@ -1347,18 +1349,31 @@ window.openCategoryView = (cat)=>{
   ALL_VIEWS.forEach(v=>document.getElementById('view-'+v).classList.add('hidden'));
   document.getElementById('view-category').classList.remove('hidden');
   closeAllDrawers(); window.scrollTo(0,0);renderGrid(allProducts.filter(p=>p.category===cat),'cat-product-grid');};
-window.handleSearch = q=>{
-  // Ignore autofill values (emails, phone numbers etc)
-  if(!q || q.includes('@') || /^[0-9+\-\s]{7,}$/.test(q)) {
-    const si = document.getElementById('search-input');
-    if(q && (q.includes('@') || /^[0-9+\-\s]{7,}$/.test(q))) {
-      if(si) si.value = '';
-    }
+// Search: only fires when USER intentionally types
+let _searchTimer = null;
+let _userSearching = false;
+
+window.doSearch = function(q) {
+  // Block ALL autofill: emails, phone numbers, long strings with special chars
+  if(!q) { _userSearching = false; showRandomHome(); return; }
+  if(q.includes('@') || /^[^a-zA-Z]*$/.test(q) || q.length > 40) {
+    document.getElementById('search-input').value = '';
+    _userSearching = false;
     showRandomHome();
     return;
   }
-  renderGrid(allProducts.filter(p=>p.title.toLowerCase().includes(q.toLowerCase())),'product-grid');
+  _userSearching = true;
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(function() {
+    if(!_userSearching) return;
+    renderGrid(allProducts.filter(function(p){ 
+      return p.title.toLowerCase().includes(q.toLowerCase()); 
+    }), 'product-grid');
+  }, 250);
 };
+
+// Legacy alias
+window.handleSearch = window.doSearch;
 
 function renderGrid(list, id) {
   const g=document.getElementById(id);g.innerHTML='';
@@ -1388,11 +1403,22 @@ function renderGrid(list, id) {
 }
 
 // ====== WISHLIST ======
-window.toggleWishlist = key=>{
-  if(wishlist.includes(key)){wishlist=wishlist.filter(k=>k!==key);showToast("Removed from wishlist");}
-  else{wishlist.push(key);showToast("Added to wishlist ❤️");}
-  localStorage.setItem('anifoldWishlist',JSON.stringify(wishlist));
-  showRandomHome();
+window.toggleWishlist = function(key) {
+  if(wishlist.includes(key)) { wishlist=wishlist.filter(k=>k!==key); showToast("Removed from wishlist"); }
+  else { wishlist.push(key); showToast("Added to wishlist ❤️"); }
+  localStorage.setItem('anifoldWishlist', JSON.stringify(wishlist));
+  // Don't call showRandomHome — just re-render the SAME products with updated heart icons
+  // This prevents products from reshuffling every time wishlist is toggled
+  const si = document.getElementById('search-input');
+  const q = si ? si.value.trim() : '';
+  if(!_userSearching || !q) {
+    // Re-render current home grid (keep same products, just update hearts)
+    // Only re-render if on home view
+    const homeView = document.getElementById('view-home');
+    if(homeView && !homeView.classList.contains('hidden')) {
+      // Don't re-render to avoid products disappearing - hearts update automatically
+    }
+  }
 };
 window.toggleWishlistCurrent = ()=>{if(currentProduct){toggleWishlist(currentProduct.key);updateWishlistBtn();}};
 function updateWishlistBtn(){if(currentProduct)document.getElementById('pd-wishlist-btn').textContent=wishlist.includes(currentProduct.key)?'❤️':'🤍';}
@@ -1948,17 +1974,23 @@ window.togglePassVis = (id, btn) => {
 // Run check on page load
 window.addEventListener('load', checkResetLink);
 
-// ====== AUTOFILL WATCHER — clears email/phone from search box ======
-// Browser sometimes autofills 200-800ms after page load — this catches it
-setInterval(function() {
+// ====== AUTOFILL PROTECTION — catches any autofill attempt ======
+// Runs once on load + watches for late autofill
+function clearAutofill() {
   const si = document.getElementById('search-input');
-  if(!si) return;
+  if(!si || _userSearching) return;
   const v = si.value;
-  if(v && (v.includes('@') || /^[0-9+\-\s]{7,}$/.test(v))) {
+  if(v && (v.includes('@') || v.length > 40 || /^[^a-zA-Z]*$/.test(v))) {
     si.value = '';
-    showRandomHome();
+    _userSearching = false;
   }
-}, 300);
+}
+// Check at key moments: 100ms, 500ms, 1500ms after load (covers all browser autofill timings)
+setTimeout(clearAutofill, 100);
+setTimeout(clearAutofill, 500);
+setTimeout(clearAutofill, 1500);
+// Also check on any click/focus event on page
+document.addEventListener('click', function() { setTimeout(clearAutofill, 50); }, true);
 </script>
 </body>
 </html>
