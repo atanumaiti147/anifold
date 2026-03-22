@@ -445,7 +445,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
   <header id="main-header">
     <div class="menu-btn" onclick="toggleMenu()" style="flex-shrink:0;">☰</div>
     <div style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;min-width:0;">
-    <img id="head-logo" class="header-logo" src="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png" alt="Anifold Store" onclick="nav('home')" style="display:block;" onerror="this.style.display='none';document.getElementById('head-logo-text').style.display='block';">
+    <img id="head-logo" class="header-logo" src="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png" alt="Anifold Store" onclick="nav('home')" fetchpriority="high" style="display:block;" onerror="this.style.display='none';document.getElementById('head-logo-text').style.display='block';">
     <span id="head-logo-text" onclick="nav('home')" style="display:none;font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--primary);cursor:pointer;letter-spacing:1px;flex-shrink:0;">ANIFOLD</span>
   </div>
     <div class="header-right" style="flex-shrink:0;">
@@ -1154,22 +1154,22 @@ db.ref('meta').on('value', s=>{
   const v=s.val()||{};
   if(v.brand){
     const _DEF_LOGO = "https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png";
-    if(v.brand.headerLogoUrl && v.brand.headerLogoUrl !== _DEF_LOGO) {
-      // Admin set a CUSTOM logo (different from default) — update header
+    // LOGO FIX: Both old and new default URLs accepted as "default"
+    // This prevents Firebase from overriding logos on every reload
+    const _DEF_LOGOS = [_DEF_LOGO,
+      "https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png"
+    ];
+    if(v.brand.headerLogoUrl && !_DEF_LOGOS.includes(v.brand.headerLogoUrl)) {
+      // Admin set a TRULY CUSTOM logo — update header + side
       const hl=document.getElementById('head-logo');
       const ltxt=document.getElementById('head-logo-text');
       hl.onload=()=>{hl.style.display='block';if(ltxt)ltxt.style.display='none';};
       hl.onerror=()=>{hl.style.display='none';if(ltxt)ltxt.style.display='block';};
       hl.src=v.brand.headerLogoUrl;
-      // Also update side logo
       const sl=document.getElementById('side-logo');
-      if(sl){
-        sl.onerror=()=>{sl.style.display='none';};
-        sl.src=v.brand.headerLogoUrl;
-        sl.style.display='block';
-      }
+      if(sl){sl.src=v.brand.headerLogoUrl;sl.style.display='block';}
     }
-    if(v.brand.heroImageUrl && v.brand.heroImageUrl !== _DEF_LOGO) {
+    if(v.brand.heroImageUrl && !_DEF_LOGOS.includes(v.brand.heroImageUrl)) {
       // Admin set a custom hero image
       const hi=document.getElementById('hero-img');
       hi.onerror=()=>{hi.src=_DEF_LOGO;};
