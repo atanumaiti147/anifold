@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 
 <!-- ====== SEO META TAGS ====== -->
 <title>Anifold Store — Anime Papercraft Templates | Download & Print</title>
@@ -416,10 +418,6 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 
 <!-- ===== AI + SUPPORT CHATBOT ===== -->
 <!-- Chat Window -->
-<script 
-    src="https://support-ai-cyan-kappa.vercel.app/chatBot.js" 
-    data-owner-id="usr_117621865953887490">
-</script>
 
 <div id="policy-full-page" class="hidden">
   <div style="max-width:800px;margin:0 auto;padding-bottom:50px;">
@@ -817,7 +815,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // ====== FIREBASE ======
 const firebaseConfig = {
   apiKey: "AIzaSyAXfqKMmJ5pzO9i0V5h0HfXaDr3rII5ojM",
@@ -832,9 +830,15 @@ try { firebase.initializeApp(firebaseConfig); } catch(e){}
 const auth = firebase.auth();
 const db = firebase.database();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
+// Force Firebase to connect (clears cached state from service worker)
+try { firebase.database().goOnline(); } catch(e) {}
 
 // ====== BACKEND URL ======
 const BACKEND = "https://craftyam.anifold.shop/create_order.php";
+
+// ====== GLOBAL STATE — declared at top to avoid TDZ errors ======
+let _searchTimer = null;
+let _userSearching = false;
 
 // ====== TELEGRAM NOTIFICATION — Admin Panel → Settings → Telegram se config ======
 let TG_BOT_TOKEN = '';
@@ -992,6 +996,23 @@ window.addEventListener('beforeinstallprompt', e => {
 document.getElementById('pwa-install-btn').onclick = () => { if(deferredPwaPrompt){deferredPwaPrompt.prompt();deferredPwaPrompt.userChoice.then(()=>{document.getElementById('pwa-prompt').style.display='none';document.getElementById('pwa-header-btn').style.display='none';});} };
 document.getElementById('pwa-header-btn').onclick = () => { if(deferredPwaPrompt) deferredPwaPrompt.prompt(); };
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+// ====== FIREBASE TIMEOUT FALLBACK ======
+// If Firebase data doesn't load in 8s, hide spinner and show retry
+setTimeout(function() {
+  const spinner = document.getElementById('loading-spinner');
+  const grid = document.getElementById('product-grid');
+  if(spinner && spinner.style.display !== 'none') {
+    spinner.style.display = 'none';
+    if(grid && !grid.innerHTML.trim()) {
+      grid.innerHTML = '<div style="text-align:center;color:#aaa;grid-column:span 2;padding:48px 20px;">' +
+        '<div style="font-size:2.5rem;margin-bottom:12px;">🔄</div>' +
+        '<div style="font-weight:700;margin-bottom:8px;">Taking longer than usual...</div>' +
+        '<button onclick="location.reload()" style="background:var(--primary);color:white;border:none;padding:12px 24px;border-radius:20px;font-weight:700;cursor:pointer;margin-top:8px;">Refresh Page</button>' +
+        '</div>';
+    }
+  }
+}, 8000);
 
 // ====== AUTH ======
 // Google Login — welcome email sirf pehli baar
@@ -1228,20 +1249,26 @@ function handleInitialHash() {
 db.ref('products').on('value', s=>{
   allProducts=[];
   const spinner=document.getElementById('loading-spinner');
-  if(spinner) spinner.style.display='none';
+  if(spinner) { spinner.style.display='none'; spinner.style.visibility='hidden'; }
   if(s.exists()){
     Object.entries(s.val()).forEach(([k,v])=>allProducts.push({key:k,...v}));
-    // Only show home products if currently on home view
     const homeView=document.getElementById('view-home');
     if(homeView && !homeView.classList.contains('hidden')){
       showRandomHome();
     }
     updateCartCount();
+  } else {
+    // No products in DB — show empty state
+    const g=document.getElementById('product-grid');
+    if(g) g.innerHTML='<div style="text-align:center;color:#aaa;grid-column:span 2;padding:48px 20px;"><div style="font-size:2.5rem;margin-bottom:12px;">🎴</div><div style="font-weight:700;">No products yet. Add from Admin Panel.</div></div>';
   }
   const cnt=document.getElementById('hero-product-count');
   if(cnt) cnt.textContent=(allProducts.length||0)+'+';
   // Handle hash routing after products load (for direct links)
   if(!window._hashHandled){window._hashHandled=true;window.setTimeout(handleInitialHash,50);}
+  // Fallback: hide spinner after 3 seconds even if products don't load
+  const _sp = document.getElementById('loading-spinner');
+  if(_sp) setTimeout(function(){ _sp.style.display='none'; }, 3000);
 });
 db.ref('categories').on('value', s=>{
   const c=document.getElementById('cat-container');c.innerHTML='';
@@ -1376,10 +1403,6 @@ function getFlashPrice(p) {
 }
 
 // ====== PRODUCT GRID ======
-// Search state vars — must be declared before showRandomHome
-let _searchTimer = null;
-let _userSearching = false;
-
 window.showRandomHome = function() {
   if(_userSearching) return; // Don't override active search
   if(allProducts.length) renderGrid([...allProducts].sort(()=>0.5-Math.random()).slice(0,8),'product-grid');
@@ -1393,6 +1416,7 @@ window.openCategoryView = (cat)=>{
   document.getElementById('view-category').classList.remove('hidden');
   closeAllDrawers(); window.scrollTo(0,0);renderGrid(allProducts.filter(p=>p.category===cat),'cat-product-grid');};
 // Search: only fires when USER intentionally types
+// (_searchTimer and _userSearching declared at top of script)
 
 window.doSearch = function(q) {
   // Block ALL autofill: emails, phone numbers, long strings with special chars
@@ -2410,6 +2434,13 @@ setTimeout(clearAutofill, 1500);
 document.addEventListener('click', function() { setTimeout(clearAutofill, 50); }, true);
 
 
+</script>
+
+<!-- ===== ANIFOLD AI CHATBOT EMBED ===== -->
+<script 
+    src="https://support-ai-cyan-kappa.vercel.app/chatBot.js" 
+    data-owner-id="usr_117621865953887490"
+    async>
 </script>
 </body>
 </html>
