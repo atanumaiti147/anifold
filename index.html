@@ -501,14 +501,6 @@ header{position:sticky;top:0;z-index:100;background:var(--header-bg);backdrop-fi
 @keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes fadeOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(30px)}}
 
-/* WhatsApp Float */
-.wa-float-container{position:fixed;bottom:24px;right:20px;z-index:100;display:flex;flex-direction:column;align-items:flex-end;}
-.wa-bubble{background:var(--card-bg);color:var(--text);padding:10px 28px 10px 14px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.12);margin-bottom:10px;font-size:.82rem;font-weight:600;position:relative;max-width:200px;border:1px solid var(--border);}
-.wa-close{position:absolute;top:4px;right:8px;cursor:pointer;color:#aaa;font-size:14px;}
-.wa-float{background:#25d366;border-radius:50%;width:56px;height:56px;display:flex;align-items:center;justify-content:center;text-decoration:none;animation:waPulse 2.5s infinite;box-shadow:0 4px 20px rgba(37,211,102,.4);}
-.wa-float svg{width:30px;height:30px;fill:white;}
-@keyframes waPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,211,102,.6)}70%{box-shadow:0 0 0 14px rgba(37,211,102,0)}}
-
 /* Scroll to Top */
 #scroll-top-btn{position:fixed;bottom:90px;right:20px;z-index:99;width:42px;height:42px;background:var(--primary);color:white;border:none;border-radius:50%;cursor:pointer;display:none;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 4px 16px rgba(112,33,34,.4);transition:.3s;}
 #scroll-top-btn.show{display:flex;}
@@ -975,17 +967,6 @@ header{position:sticky;top:0;z-index:100;background:var(--header-bg);backdrop-fi
   </footer>
 </div>
 
-<!-- WA Float -->
-<div class="wa-float-container">
-  <div class="wa-bubble" id="wa-bubble-msg">
-    <span class="wa-close" onclick="this.parentElement.style.display='none'">×</span>
-    Want a Physical Anime Character with Home Delivery? Chat Now! 👇
-  </div>
-  <a href="https://wa.link/s62366" class="wa-float" target="_blank" id="wa-float-link">
-    <svg viewBox="0 0 32 32"><path d="M19.11 17.205c-.372 0-1.088 1.39-1.518 1.39a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.143-.73-2.09-.832-2.335-.143-.372-.214-.487-.6-.487-.187 0-.36-.043-.53-.043-.302 0-.53.115-.746.315-.688.645-1.032 1.318-1.06 2.264v.114c-.015.99.472 1.977 1.017 2.78 1.23 1.82 2.506 3.41 4.554 4.34.616.287 2.035.888 2.722.888.817 0 2.15-.515 2.478-1.318.13-.33.244-.73.244-1.088 0-.058 0-.144-.03-.215-.1-.172-2.434-1.39-2.678-1.39zm-2.908 7.593c-1.747 0-3.48-.53-4.942-1.49l-.772.15-4.144 1.1 1.26-4.14.46-.458c-1.375-2.195-1.732-4.85-1.032-7.387 1.15-4.17 4.945-6.916 9.17-6.916 5.286 0 9.588 4.302 9.588 9.588 0 5.286-4.3 9.553-9.588 9.553z"/></svg>
-  </a>
-</div>
-
 <!-- Forgot Password Modal -->
 <div id="forgot-modal" style="display:none;position:fixed;z-index:1001;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--card-bg);border-radius:20px;max-width:380px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25);">
@@ -1395,7 +1376,6 @@ db.ref('meta').on('value',s=>{
   if(v.contact){
     document.getElementById('con-hours-val').innerText=v.contact.hours||'-';
     document.getElementById('con-address-val').innerText=v.contact.address||'-';
-    if(v.contact.whatsapp){const wl=`https://wa.me/${v.contact.whatsapp}`;document.getElementById('con-wa-link').href=wl;const waF=document.getElementById('wa-float-link');if(waF)waF.href=wl;window._waLink=wl;}
     const sDiv=document.getElementById('footer-socials');const cDiv=document.getElementById('contact-socials');sDiv.innerHTML='';cDiv.innerHTML='';
     if(v.contact.email){const el=document.getElementById('con-email-val');if(el)el.innerHTML=`<a href="mailto:${v.contact.email}" style="color:var(--primary);font-weight:700;text-decoration:none;">${v.contact.email}</a>`;}
     if(v.contact.youtube)sDiv.innerHTML+=`<a href="${v.contact.youtube}" target="_blank" style="color:rgba(255,255,255,.55);font-size:1rem;font-weight:600;text-decoration:none;padding:6px 12px;border:1px solid rgba(255,255,255,.15);border-radius:20px;">▶ YouTube</a>`;
@@ -1775,8 +1755,8 @@ document.addEventListener('click',function(){setTimeout(clearAutofill,50);},true
 // ============================================================
 
 // Logo URLs stored globally
-window._logoLight = '';
-window._logoDark  = '';
+window._logoLight = 'https://res.cloudinary.com/di1mnrg0l/image/upload/v1774163364/anifold-brand/Picsart_26-01-02_20-57-17-409_otvgsu.png';
+window._logoDark  = 'https://res.cloudinary.com/di1mnrg0l/image/upload/v1774163382/anifold-brand/Picsart_26-01-02_20-57-06-204_czsctl.png';
 
 // Override toggleDarkMode to also swap logo
 (function() {
