@@ -501,7 +501,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
     <a class="menu-link auth-only hidden" onclick="nav('wishlist')"><span class="menu-link-icon">❤️</span> Wishlist</a>
     <a class="menu-link" onclick="nav('home')"><span class="menu-link-icon">🏠</span> Home</a>
     <a class="menu-link" onclick="nav('contact')"><span class="menu-link-icon">📞</span> Support</a>
-    <a class="menu-link auth-only hidden" id="tg-menu-link" onclick="connectTelegram()"><span class="menu-link-icon">✈️</span> Connect Telegram</a>
+    
     <a class="menu-link hidden guest-only" onclick="nav('auth')"><span class="menu-link-icon">🔐</span> Login / Signup</a>
     <a class="menu-link hidden auth-only" onclick="doLogout()" style="color:#ff6b6b;"><span class="menu-link-icon">👋</span> Logout</a>
   </nav>
@@ -663,20 +663,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
         <input type="text" id="dash-lname" class="p-input" placeholder="Last Name">
         <input type="tel" id="dash-mobile" class="p-input" placeholder="Mobile Number">
         <button class="p-save-btn" onclick="saveProfile()">Save Changes</button>
-        <div id="tg-connect-wrap" style="margin-top:16px;padding:16px;background:#f0f9ff;border-radius:14px;border:1.5px solid #2AABEE;">
-          <div style="font-weight:800;font-size:.88rem;margin-bottom:4px;color:#0369a1;">✈️ Connect Telegram</div>
-          <div id="tg-link-status" style="font-size:.8rem;color:#555;line-height:1.6;margin-bottom:12px;">Get orders, downloads & support on Telegram!</div>
-          <div id="tg-steps" style="background:white;border-radius:10px;padding:12px;border:1px solid #bfdbfe;font-size:.8rem;line-height:1.8;margin-bottom:12px;">
-            <b>2 simple steps:</b><br>
-            <span style="color:#2AABEE;">①</span> Open our bot on Telegram<br>
-            <span style="color:#2AABEE;">②</span> Send: <code id="tg-link-cmd" style="background:#e0f2fe;padding:2px 7px;border-radius:6px;font-weight:700;">/link loading...</code>
-          </div>
-          <button onclick="connectTelegram()" id="tg-link-btn" style="background:#2AABEE;color:white;border:none;padding:11px 20px;border-radius:22px;font-weight:700;font-size:.84rem;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
-            Open Telegram Bot
-          </button>
-          <p style="text-align:center;font-size:.72rem;color:#94a3b8;margin-top:8px;">After opening bot, send the command shown above</p>
-        </div>
+        
       </div>
       <div id="dash-orders" class="hidden"><div id="dash-orders-list" style="padding:12px 0 24px;"></div></div>
     </div>
@@ -872,25 +859,7 @@ const BACKEND = "https://craftyam.anifold.shop/create_order.php";
 let _searchTimer = null;
 let _userSearching = false;
 
-// ====== TELEGRAM NOTIFICATION — Admin Panel → Settings → Telegram se config ======
-let TG_BOT_TOKEN = '';
-let TG_CHAT_ID   = '';
 
-// Send Telegram message (silent fail — never blocks UI)
-async function tgNotify(message) {
-  if(!TG_BOT_TOKEN || !TG_CHAT_ID) return;
-  try {
-    await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id:    TG_CHAT_ID,
-        text:       message,
-        parse_mode: 'HTML'
-      })
-    });
-  } catch(e) {} // Silent fail — never affects user experience
-}
 
 // ====== EMAILJS CONFIG — Admin Panel → Settings → EmailJS se auto-load hota hai ======
 let EJS_SERVICE_ID  = '';
@@ -1097,14 +1066,7 @@ function handleGoogleResult(r) {
       });
       callEmail('welcome_email', { to_email:u.email, to_name:u.displayName||'Friend' });
       // Telegram: Google signup alert
-      tgNotify(
-        `👤 <b>NEW GOOGLE USER — Anifold</b>\n\n` +
-        `📧 Email: ${u.email}\n` +
-        `👋 Name: ${u.displayName||'Unknown'}\n` +
-        `🔑 Login: Google OAuth\n` +
-        `📅 Date: ${new Date().toLocaleString('en-IN')}`
-      );
-    }
+}
   });
   showToast('Welcome, ' + (u.displayName||'Friend') + '! 🎉');
   nav('home');
@@ -1402,10 +1364,7 @@ db.ref('meta').on('value', s=>{
   // Load EmailJS config from admin panel settings
   if(v.emailjs) initEmailJS(v.emailjs);
   // Load Telegram config from admin panel settings
-  if(v.telegram && v.telegram.botToken) {
-    TG_BOT_TOKEN = v.telegram.botToken;
-    TG_CHAT_ID   = v.telegram.chatId || '';
-  }
+  
   if(v.app&&v.app.url){document.getElementById('menu-download-app').href=v.app.url;document.getElementById('menu-download-app').classList.remove('hidden');}
   if(v.contact){
     document.getElementById('con-hours-val').innerText=v.contact.hours||'-';
@@ -1751,18 +1710,7 @@ window.confirmOrder = event => {
         payment_id:   resp.razorpay_payment_id
       });
 
-      // 3. Telegram notification — new order alert
-      tgNotify(
-        `🛒 <b>NEW ORDER — Anifold</b>\n\n` +
-        `👤 Customer: ${auth.currentUser.email}\n` +
-        `🎴 Product: ${checkoutItems.map(i => i.title).join(', ')}\n` +
-        `💰 Amount: ₹${checkoutFinalAmount.toFixed(2)}\n` +
-        `🔑 Payment ID: ${resp.razorpay_payment_id}\n` +
-        `📅 Date: ${orderDate}\n` +
-        `\n✅ Payment confirmed via Razorpay`
-      );
-
-      // 3. Clear cart and redirect
+            // 3. Clear cart and redirect
       if(cart.some(c => c.key === checkoutItems[0]?.key)){
         cart = [];
         localStorage.setItem('anifoldCart', '[]');
@@ -1816,7 +1764,6 @@ window.renderLibrary=()=>{
 function loadDashboard(){
   if(!auth.currentUser){nav('auth');return;}
   db.ref('users/'+auth.currentUser.uid).once('value').then(s=>{if(s.exists()){const v=s.val();document.getElementById('dash-fname').value=v.firstName||'';document.getElementById('dash-lname').value=v.lastName||'';document.getElementById('dash-mobile').value=v.mobile||'';}});
-  checkTelegramLink();
 }
 window.switchDashTab=(tab,btn)=>{document.querySelectorAll('.dash-tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');document.getElementById('dash-profile').classList.toggle('hidden',tab!=='profile');document.getElementById('dash-orders').classList.toggle('hidden',tab!=='orders');if(tab==='orders')loadOrderHistory();};
 window.saveProfile=()=>{if(!auth.currentUser)return;db.ref('users/'+auth.currentUser.uid).update({firstName:document.getElementById('dash-fname').value,lastName:document.getElementById('dash-lname').value,mobile:document.getElementById('dash-mobile').value}).then(()=>showToast("Profile updated!"));};
@@ -1854,16 +1801,7 @@ window.sendContactEmail = async () => {
   } catch(e) {}
 
   // STEP 1b: Telegram notification (background)
-  tgNotify(
-    `💬 <b>NEW CONTACT MESSAGE — Anifold</b>\n\n` +
-    `👤 Name: ${name}\n` +
-    `📧 Email: ${email}\n` +
-    `📝 Message: ${msg}\n` +
-    `📅 Date: ${new Date().toLocaleString('en-IN')}\n` +
-    `\n📌 Reply via Admin Panel → Messages`
-  );
-
-  // STEP 2: Show success IMMEDIATELY — don't wait for email
+// STEP 2: Show success IMMEDIATELY — don't wait for email
   ['c-name','c-email','c-msg'].forEach(id => document.getElementById(id).value='');
   btn.innerText='SEND MESSAGE'; btn.disabled=false;
 
@@ -1946,15 +1884,7 @@ window.handleAuth = () => {
       callEmail('welcome_email', { to_email: e, to_name: fn + ' ' + ln });
 
       // Telegram: new signup alert
-      tgNotify(
-        `👤 <b>NEW USER SIGNUP — Anifold</b>\n\n` +
-        `📧 Email: ${e}\n` +
-        `👋 Name: ${fn} ${ln}\n` +
-        `📱 Mobile: ${cc} ${mob}\n` +
-        `📅 Date: ${new Date().toLocaleString('en-IN')}`
-      );
-
-      nav('home');
+nav('home');
       showToast("Welcome to Anifold! 🎉");
     }).catch(er=>{
         const codeMap = {
@@ -2422,47 +2352,10 @@ setTimeout(function() {
 }, 3000);
 
 // ====== TELEGRAM CONNECT — user account link ======
-window.connectTelegram = function() {
-  if(!auth.currentUser) { showToast("Pehle login karo",'error'); nav('auth'); return; }
-  // Get bot username from Firebase settings
-  db.ref('meta/telegram/botUsername').once('value').then(function(s) {
-    const botUsername = s.val() || 'your_anifold_bot'; // Admin sets this in Firebase
-    const email = auth.currentUser.email;
-    const tgUrl = 'https://t.me/' + botUsername;
-    window.open(tgUrl, '_blank');
-  });
-};
+
 
 // Check TG link status + pre-fill command
-function checkTelegramLink() {
-  if(!auth.currentUser) return;
-  const email = auth.currentUser.email;
 
-  // Pre-fill the /link command with user's email
-  const cmdEl = document.getElementById('tg-link-cmd');
-  if(cmdEl) cmdEl.textContent = '/link ' + email;
-
-  // Check if already linked
-  db.ref('users/' + auth.currentUser.uid + '/telegramLinked').once('value').then(function(s) {
-    if(s.val() === true) {
-      const statusEl = document.getElementById('tg-link-status');
-      const btnEl    = document.getElementById('tg-link-btn');
-      const stepsEl  = document.getElementById('tg-steps');
-      const menuEl   = document.getElementById('tg-menu-link');
-      if(statusEl) statusEl.innerHTML = '<span style="color:#16a34a;font-weight:700;">✅ Telegram Connected!</span><br>You will receive order updates & downloads on Telegram.';
-      if(btnEl) {
-        btnEl.innerHTML = '✅ Telegram Connected';
-        btnEl.style.background = '#16a34a';
-        btnEl.disabled = true;
-      }
-      if(stepsEl) stepsEl.style.display = 'none';
-      if(menuEl) {
-        menuEl.querySelector('.menu-link-icon').textContent = '✅';
-        menuEl.querySelector('.menu-link-icon').nextSibling.textContent = ' Telegram Connected';
-      }
-    }
-  });
-}
 
 // ====== AUTOFILL PROTECTION — catches any autofill attempt ======
 // Runs once on load + watches for late autofill
