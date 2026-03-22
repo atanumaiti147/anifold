@@ -306,13 +306,30 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 .review-user { font-weight: 700; font-size: 0.88rem; }
 .review-date { font-size: 0.72rem; color: #aaa; margin-bottom: 8px; }
 .review-text { font-size: 0.88rem; color: #555; line-height: 1.5; }
-.checkout-box { padding: 20px; max-width: 500px; margin: 0 auto; }
-.checkout-title { text-align: center; font-size: 1.4rem; font-weight: 900; margin-bottom: 20px; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
-.order-summary-card { background: white; border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; border: 1px solid var(--border); }
-.summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; color: #555; }
-.summary-row.total { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 10px; font-weight: 900; font-size: 1.1rem; color: var(--dark); }
-.coupon-box-co { display: flex; gap: 8px; margin-top: 16px; }
-.payment-card { background: white; border-radius: var(--radius-lg); padding: 18px; border: 1px solid var(--border); box-shadow: var(--shadow); margin-bottom: 16px; }
+.checkout-box { padding: 16px; max-width: 500px; margin: 0 auto; width: 100%; padding-bottom: 100px; }
+.checkout-title { text-align: center; font-size: 1.3rem; font-weight: 900; margin-bottom: 16px; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; }
+.order-summary-card { background: white; border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; border: 1px solid var(--border); overflow: hidden; }
+.summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.88rem; color: #555; gap: 8px; }
+.summary-row span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.summary-row span:last-child { flex-shrink: 0; font-weight: 700; }
+.summary-row.total { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; font-weight: 900; font-size: 1.05rem; color: var(--dark); }
+.coupon-box-co { display: flex; gap: 8px; margin-top: 14px; width: 100%; }
+.coupon-box-co .coupon-inp { flex: 1; min-width: 0; font-size: 0.82rem; }
+.coupon-box-co .coupon-btn { flex-shrink: 0; white-space: nowrap; font-size: 0.82rem; padding: 0 14px; }
+.payment-card { background: white; border-radius: var(--radius-lg); padding: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); margin-bottom: 12px; }
+/* Sticky Place Order button on mobile */
+.checkout-sticky-btn { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: white; border-top: 1px solid var(--border); box-shadow: 0 -4px 20px rgba(0,0,0,0.1); z-index: 200; display: none; }
+.checkout-sticky-btn .pd-btn { margin: 0; width: 100%; }
+@media (max-width: 640px) {
+  .checkout-box { padding: 12px 12px 120px; }
+  .checkout-title { font-size: 1.15rem; margin-bottom: 14px; }
+  .order-summary-card { padding: 14px; border-radius: var(--radius); }
+  .summary-row { font-size: 0.82rem; }
+  .summary-row.total { font-size: 0.95rem; }
+  .payment-card { padding: 14px; border-radius: var(--radius); }
+  .checkout-sticky-btn { display: block; }
+  .checkout-inline-btn { display: none; }
+}
 .profile-header { background: linear-gradient(135deg, #702122, #a40000); padding: 30px 20px; text-align: center; color: white; }
 .profile-avatar { width: 72px; height: 72px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 12px; border: 3px solid rgba(255,255,255,0.4); }
 .dash-tabs { display: flex; background: white; border-bottom: 2px solid var(--border); position: sticky; top: 64px; z-index: 50; }
@@ -531,26 +548,41 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
     </div>
 
     <div id="view-checkout" class="hidden checkout-box">
-      <h2 class="checkout-title">Order Summary</h2>
+      <h2 class="checkout-title">🛒 Order Summary</h2>
+
       <div class="order-summary-card">
         <div id="checkout-items-list"></div>
         <div class="coupon-box-co">
-          <input type="text" id="checkout-coupon-input" class="coupon-inp" placeholder="COUPON CODE" style="border-radius:8px;font-size:0.85rem;">
+          <input type="text" id="checkout-coupon-input" class="coupon-inp" placeholder="COUPON CODE" style="border-radius:8px;">
           <button class="coupon-btn" onclick="applyCoupon('checkout')">APPLY</button>
         </div>
         <p id="checkout-coupon-msg" class="coupon-msg"></p>
         <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
           <div class="summary-row"><span>Subtotal</span><span id="co-subtotal">₹0</span></div>
-          <div class="summary-row" id="co-discount-row" style="color:#16a34a;"><span>Discount</span><span id="co-discount">-₹0</span></div>
-          <div class="summary-row"><span>Tax <span id="co-tax-label"></span></span><span id="co-tax">₹0</span></div>
-          <div class="summary-row total"><span>Total</span><span id="co-total" style="color:var(--primary);">₹0</span></div>
+          <div class="summary-row" id="co-discount-row" style="color:#16a34a;display:none;"><span>Discount</span><span id="co-discount">-₹0</span></div>
+          <div class="summary-row"><span>Tax <span id="co-tax-label" style="font-size:0.75rem;color:#aaa;"></span></span><span id="co-tax">₹0</span></div>
+          <div class="summary-row total"><span>Total</span><span id="co-total" style="color:var(--primary);font-size:1.15rem;">₹0</span></div>
         </div>
       </div>
+
       <div class="payment-card">
-        <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:0.9rem;"><input type="radio" checked style="width:18px;height:18px;accent-color:var(--primary);"> UPI / GPay / PhonePe / Card</div>
-        <img src="https://cdn.razorpay.com/static/assets/logo/payment.svg" style="height:18px;margin-top:10px;">
+        <div style="display:flex;align-items:center;gap:10px;font-weight:700;font-size:0.88rem;">
+          <input type="radio" checked style="width:16px;height:16px;accent-color:var(--primary);flex-shrink:0;">
+          <span>UPI / GPay / PhonePe / Card</span>
+        </div>
+        <img src="https://cdn.razorpay.com/static/assets/logo/payment.svg" style="height:16px;margin-top:10px;max-width:140px;">
+        <p style="font-size:0.72rem;color:#aaa;margin-top:8px;">100% secure payment powered by Razorpay</p>
       </div>
-      <button class="pd-btn btn-buy" style="width:100%;padding:15px;border-radius:10px;font-size:1rem;" onclick="confirmOrder(event)">PLACE ORDER →</button>
+
+      <!-- Desktop/Tablet inline button -->
+      <button class="pd-btn btn-buy checkout-inline-btn" id="co-place-btn" style="width:100%;padding:16px;border-radius:12px;font-size:1rem;margin-bottom:8px;" onclick="confirmOrder(event)">⚡ PLACE ORDER →</button>
+      <p style="text-align:center;font-size:0.72rem;color:#aaa;margin-top:4px;" class="checkout-inline-btn">By placing order you agree to our <a onclick="openPolicy('terms')" style="color:var(--primary);cursor:pointer;">Terms</a></p>
+    </div>
+
+    <!-- Mobile sticky bottom button -->
+    <div class="checkout-sticky-btn" id="checkout-sticky-wrap">
+      <button class="pd-btn btn-buy" id="co-place-btn-sticky" style="padding:16px;border-radius:12px;font-size:1rem;" onclick="confirmOrderMobile(event)">⚡ PLACE ORDER →</button>
+      <p style="text-align:center;font-size:0.68rem;color:#aaa;margin-top:5px;">100% secure • Razorpay</p>
     </div>
 
     <div id="view-library" class="hidden"><div style="padding:20px 20px 10px;"><div class="section-title">📚 My Collection</div></div><div id="library-grid" class="grid"></div></div>
@@ -584,7 +616,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
         <div class="info-item"><div class="c-icon">📍</div><div><div style="font-weight:700;margin-bottom:3px;font-size:0.9rem;">Location</div><div id="con-address-val" style="font-size:0.85rem;color:#555;">Loading...</div></div></div>
         <div class="info-item"><div class="c-icon">🕒</div><div><div style="font-weight:700;margin-bottom:3px;font-size:0.9rem;">Hours</div><div id="con-hours-val" style="font-size:0.85rem;color:#555;">Loading...</div></div></div>
         <div class="info-item"><div class="c-icon">💬</div><div><div style="font-weight:700;margin-bottom:3px;font-size:0.9rem;">WhatsApp</div><a id="con-wa-link" href="#" style="color:var(--primary);font-weight:700;text-decoration:none;font-size:0.85rem;">Chat Now →</a></div></div>
-        <div class="info-item" style="margin-bottom:0;"><div class="c-icon">📧</div><div><div style="font-weight:700;margin-bottom:3px;font-size:0.9rem;">Email</div><div id="con-email-val" style="font-size:0.85rem;color:#555;">support@anifold.shop</div></div></div>
+        <div class="info-item" style="margin-bottom:0;"><div class="c-icon">📧</div><div><div style="font-weight:700;margin-bottom:3px;font-size:0.9rem;">Email</div><div id="con-email-val" style="font-size:0.85rem;color:#555;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="bbc8cecbcbd4c9cffbdad5d2ddd4d7df95c8d3d4cb">[email&#160;protected]</a></div></div></div>
         <div id="contact-socials" style="margin-top:16px;"></div>
       </div>
       <div class="info-card">
@@ -640,7 +672,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
   </div>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ====== FIREBASE ======
 const firebaseConfig = {
   apiKey: "AIzaSyAXfqKMmJ5pzO9i0V5h0HfXaDr3rII5ojM",
@@ -911,6 +943,11 @@ window.nav = (id, pushState=true) => {
   if(id==='library') renderLibrary();
   if(id==='wishlist') renderWishlistView();
   if(id==='dashboard') loadDashboard();
+  // Hide checkout sticky btn when leaving checkout
+  if(id !== 'checkout') {
+    const sw = document.getElementById('checkout-sticky-wrap');
+    if(sw) sw.style.display = 'none';
+  }
 };
 
 function getPageTitle(id) {
@@ -1273,8 +1310,19 @@ window.checkoutCart=()=>{if(cart.length)showCheckoutPage(cart);};
 function showCheckoutPage(items){
   if(!auth.currentUser){showToast("Login first",'error');nav('auth');return;}
   checkoutItems=items;
-  document.getElementById('checkout-items-list').innerHTML=items.map(i=>`<div class="summary-row"><span style="flex:1;padding-right:10px;">${i.title}</span><b>₹${getFlashPrice(i)||i.discountedPrice}</b></div>`).join('');
-  updateCheckoutSummary();nav('checkout');
+  // Render items with better mobile layout
+  document.getElementById('checkout-items-list').innerHTML=items.map(i=>{
+    const price = getFlashPrice(i)||i.discountedPrice;
+    return `<div class="summary-row" style="padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid #f5f5f5;">
+      <span style="font-weight:600;color:var(--dark);">${i.title}</span>
+      <b style="color:var(--primary);white-space:nowrap;">₹${price}</b>
+    </div>`;
+  }).join('');
+  updateCheckoutSummary();
+  nav('checkout');
+  // Show sticky btn on mobile
+  const stickyWrap = document.getElementById('checkout-sticky-wrap');
+  if(stickyWrap) stickyWrap.style.display = 'block';
 }
 function updateCheckoutSummary(){
   let sub=checkoutItems.reduce((s,i)=>s+(parseInt(getFlashPrice(i)||i.discountedPrice)),0);
@@ -1282,14 +1330,22 @@ function updateCheckoutSummary(){
   let taxable=sub-disc,tax=0;if(taxSettings.value>0)tax=taxSettings.type==='fixed'?taxSettings.value:taxable*taxSettings.value/100;
   checkoutFinalAmount=taxable+tax;
   document.getElementById('co-subtotal').innerText='₹'+sub;
-  if(disc>0){document.getElementById('co-discount-row').classList.remove('hidden');document.getElementById('co-discount').innerText='-₹'+disc;}
-  else document.getElementById('co-discount-row').classList.add('hidden');
+  const discRow = document.getElementById('co-discount-row');
+  if(disc>0){discRow.style.display='flex';document.getElementById('co-discount').innerText='-₹'+disc;}
+  else discRow.style.display='none';
   document.getElementById('co-tax-label').innerText=taxSettings.value>0?(taxSettings.type==='fixed'?'(Fixed)':`(${taxSettings.value}%)`):'';
   document.getElementById('co-tax').innerText='₹'+tax.toFixed(2);
   document.getElementById('co-total').innerText='₹'+checkoutFinalAmount.toFixed(2);
 }
 
 // ====== CONFIRM ORDER — Resend email bhi jaata hai ======
+window.confirmOrderMobile = event => {
+  // Mobile sticky btn → call same logic but reference inline btn too
+  const inlineBtn = document.getElementById('co-place-btn');
+  if(inlineBtn) { inlineBtn.disabled = true; inlineBtn.innerText = 'Opening...'; }
+  confirmOrder(event);
+};
+
 window.confirmOrder = event => {
   if(!razorpayKey){ showToast("Payment not configured — contact support",'error'); return; }
   if(!auth.currentUser){ showToast("Please login first",'error'); nav('auth'); return; }
@@ -1358,6 +1414,11 @@ window.confirmOrder = event => {
       ondismiss: () => {
         btn.disabled = false;
         btn.innerText = "PLACE ORDER →";
+        // Re-enable both buttons
+        const b2 = document.getElementById('co-place-btn');
+        const b3 = document.getElementById('co-place-btn-sticky');
+        if(b2) { b2.disabled = false; b2.innerText = '⚡ PLACE ORDER →'; }
+        if(b3) { b3.disabled = false; b3.innerText = '⚡ PLACE ORDER →'; }
       }
     }
   });
@@ -1526,11 +1587,4 @@ window.closeForgotModal=()=>{document.getElementById('forgot-modal').style.displ
 // Password reset — Firebase handle karta hai, alag email nahi chahiye
 window.sendResetEmail=()=>{
   const e=document.getElementById('reset-email').value;
-  if(!e){showToast("Enter email",'error');return;}
-  auth.sendPasswordResetEmail(e)
-    .then(()=>{showToast("Reset link sent! Check inbox 📧");closeForgotModal();})
-    .catch(er=>showToast(er.message,'error'));
-};
-</script>
-</body>
-</html>
+  if(!e){show
