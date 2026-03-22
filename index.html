@@ -114,9 +114,8 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 #flash-countdown { display: inline-block; background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 20px; margin-left: 10px; font-family: monospace; }
 #side-menu { position: fixed; top: 0; left: -100%; width: 280px; height: 100vh; background: var(--dark); z-index: 200; transition: 0.3s cubic-bezier(0.4,0,0.2,1); padding-top: 20px; overflow-y: auto; box-shadow: 10px 0 40px rgba(0,0,0,0.3); }
 #side-menu.open { left: 0; }
-.side-menu-logo { padding: 16px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; display:flex; align-items:center; gap:10px; }
-.side-menu-logo img { height: 44px; width: auto; object-fit: contain; border-radius: 8px; }
-.side-menu-logo-text { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--accent); letter-spacing: 2px; }
+.side-menu-logo { padding: 16px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; display:flex; align-items:center; }
+.side-menu-logo img { height: 44px; width: auto; max-width: 160px; object-fit: contain; border-radius: 8px; }
 .menu-link { display: flex; align-items: center; gap: 12px; padding: 14px 24px; text-decoration: none; color: rgba(255,255,255,0.8); font-weight: 500; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: 0.2s; }
 .menu-link:hover { color: white; background: rgba(255,255,255,0.05); }
 .menu-link-icon { width: 20px; text-align: center; font-size: 1rem; }
@@ -447,7 +446,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
     <div class="menu-btn" onclick="toggleMenu()" style="flex-shrink:0;">☰</div>
     <div style="flex:1;display:flex;justify-content:center;align-items:center;overflow:hidden;min-width:0;">
     <img id="head-logo" class="header-logo" src="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png" alt="Anifold Store" onclick="nav('home')" style="display:block;" onerror="this.style.display='none';document.getElementById('head-logo-text').style.display='block';">
-    <span id="head-logo-text" onclick="nav('home')" style="display:none;font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--primary);cursor:pointer;letter-spacing:1px;">ANIFOLD</span>
+    <span id="head-logo-text" onclick="nav('home')" style="display:none;font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--primary);cursor:pointer;letter-spacing:1px;flex-shrink:0;">ANIFOLD</span>
   </div>
     <div class="header-right" style="flex-shrink:0;">
       <button class="pwa-install-btn" id="pwa-header-btn">📲 Install</button>
@@ -462,7 +461,7 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 
   <nav id="side-menu">
     <div class="side-menu-logo">
-      <img id="side-logo" src="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png" alt="Anifold" style="display:block;" onerror="this.style.display='none';">
+      <img id="side-logo" src="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png" alt="Anifold" style="display:block;height:44px;width:auto;max-width:160px;object-fit:contain;border-radius:8px;" onerror="this.style.display='none';">
     </div>
     <a href="#" id="menu-download-app" class="menu-link app-dl-btn hidden" target="_blank"><span class="menu-link-icon">📱</span> Download App</a>
     <a class="menu-link auth-only hidden" onclick="nav('dashboard')"><span class="menu-link-icon">👤</span> My Account</a>
@@ -1156,14 +1155,19 @@ db.ref('meta').on('value', s=>{
   if(v.brand){
     const _DEF_LOGO = "https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png";
     if(v.brand.headerLogoUrl && v.brand.headerLogoUrl !== _DEF_LOGO) {
-      // Admin set a custom logo — update header + side
+      // Admin set a CUSTOM logo (different from default) — update header
       const hl=document.getElementById('head-logo');
       const ltxt=document.getElementById('head-logo-text');
       hl.onload=()=>{hl.style.display='block';if(ltxt)ltxt.style.display='none';};
       hl.onerror=()=>{hl.style.display='none';if(ltxt)ltxt.style.display='block';};
       hl.src=v.brand.headerLogoUrl;
+      // Also update side logo
       const sl=document.getElementById('side-logo');
-      if(sl){sl.src=v.brand.headerLogoUrl;sl.style.display='block';}
+      if(sl){
+        sl.onerror=()=>{sl.style.display='none';};
+        sl.src=v.brand.headerLogoUrl;
+        sl.style.display='block';
+      }
     }
     if(v.brand.heroImageUrl && v.brand.heroImageUrl !== _DEF_LOGO) {
       // Admin set a custom hero image
