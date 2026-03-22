@@ -552,7 +552,13 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
           </div>
         </div>
       </section>
-      <div class="search-wrap"><div class="search-container" style="position:relative;"><span class="search-icon">🔍</span><input type="text" id="search-input" class="search-input" placeholder="Search Naruto, One Piece, Demon Slayer..." oninput="handleSearch(this.value)" autocomplete="new-password" name="product-search"></div></div>
+      <div class="search-wrap">
+  <!-- Honeypot: tricks browser into filling this hidden field instead of search -->
+  <div style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+    <input type="email" name="email" tabindex="-1" autocomplete="email">
+    <input type="text" name="username" tabindex="-1" autocomplete="username">
+  </div>
+  <div class="search-container" style="position:relative;"><span class="search-icon">🔍</span><input type="text" id="search-input" class="search-input" placeholder="Search Naruto, One Piece, Demon Slayer..." oninput="handleSearch(this.value)" autocomplete="off" name="srch-x9z7" readonly onfocus="this.removeAttribute('readonly')" style="background:white;"></div></div>
       <div class="section-title-center">TOP <span>CATEGORIES</span></div>
       <div class="cat-scroll" id="cat-container"></div>
       <div class="section-header"><div class="section-title">✨ Featured Drops</div><div class="refresh-btn" onclick="showRandomHome()">🔄 Refresh</div></div>
@@ -1086,9 +1092,12 @@ window.nav = (id, pushState=true) => {
     document.title = getPageTitle(id);
   }
   if(id==='home') {
-    // Clear search box to prevent autofill-based filtering
+    // Aggressively clear search to prevent browser autofill bug
     const si = document.getElementById('search-input');
-    if(si) si.value = '';
+    if(si) {
+      si.value = '';
+      si.blur();
+    }
     showRandomHome();
   }
   if(id==='library') renderLibrary();
@@ -1338,7 +1347,18 @@ window.openCategoryView = (cat)=>{
   ALL_VIEWS.forEach(v=>document.getElementById('view-'+v).classList.add('hidden'));
   document.getElementById('view-category').classList.remove('hidden');
   closeAllDrawers(); window.scrollTo(0,0);renderGrid(allProducts.filter(p=>p.category===cat),'cat-product-grid');};
-window.handleSearch = q=>{if(!q)showRandomHome();else renderGrid(allProducts.filter(p=>p.title.toLowerCase().includes(q.toLowerCase())),'product-grid');};
+window.handleSearch = q=>{
+  // Ignore autofill values (emails, phone numbers etc)
+  if(!q || q.includes('@') || /^[0-9+\-\s]{7,}$/.test(q)) {
+    const si = document.getElementById('search-input');
+    if(q && (q.includes('@') || /^[0-9+\-\s]{7,}$/.test(q))) {
+      if(si) si.value = '';
+    }
+    showRandomHome();
+    return;
+  }
+  renderGrid(allProducts.filter(p=>p.title.toLowerCase().includes(q.toLowerCase())),'product-grid');
+};
 
 function renderGrid(list, id) {
   const g=document.getElementById(id);g.innerHTML='';
@@ -1927,6 +1947,18 @@ window.togglePassVis = (id, btn) => {
 
 // Run check on page load
 window.addEventListener('load', checkResetLink);
+
+// ====== AUTOFILL WATCHER — clears email/phone from search box ======
+// Browser sometimes autofills 200-800ms after page load — this catches it
+setInterval(function() {
+  const si = document.getElementById('search-input');
+  if(!si) return;
+  const v = si.value;
+  if(v && (v.includes('@') || /^[0-9+\-\s]{7,}$/.test(v))) {
+    si.value = '';
+    showRandomHome();
+  }
+}, 300);
 </script>
 </body>
 </html>
