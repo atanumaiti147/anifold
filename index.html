@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
+
 
 <!-- ====== SEO META TAGS ====== -->
+<!-- Anifold v3.0 -->
 <title>Anifold Store — Anime Papercraft Templates | Download & Print</title>
 <meta name="description" content="Download premium anime papercraft templates from Anifold Store. Build your favorite characters — Naruto, One Piece, Demon Slayer, Dragon Ball and more. Instant digital download after purchase.">
 <meta name="keywords" content="anime papercraft, anime origami, naruto papercraft, one piece papercraft, demon slayer papercraft, download anime template, 3d anime character, paper craft anime, printable anime, anifold, papercraft india">
@@ -834,8 +834,13 @@ try { firebase.initializeApp(firebaseConfig); } catch(e){}
 const auth = firebase.auth();
 const db = firebase.database();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
-// Force Firebase to connect (clears cached state from service worker)
-try { firebase.database().goOnline(); } catch(e) {}
+
+// Force SW to skip waiting (ensures fresh code runs, not cached)
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.ready.then(function(reg) {
+    if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+  }).catch(function(){});
+}
 // Clear corrupted hero cache (if it stored logo URL instead of hero)
 (function(){
   var h = localStorage.getItem('af_hero');
@@ -1004,20 +1009,7 @@ window.addEventListener('beforeinstallprompt', e => {
 });
 document.getElementById('pwa-install-btn').onclick = () => { if(deferredPwaPrompt){deferredPwaPrompt.prompt();deferredPwaPrompt.userChoice.then(()=>{document.getElementById('pwa-prompt').style.display='none';document.getElementById('pwa-header-btn').style.display='none';});} };
 document.getElementById('pwa-header-btn').onclick = () => { if(deferredPwaPrompt) deferredPwaPrompt.prompt(); };
-// Clear old service worker cache first, then register
-if('serviceWorker' in navigator) {
-  // Unregister any old SW that might be serving stale content
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-    regs.forEach(function(reg) {
-      // Only unregister if it's an old cached version
-      if(reg.active && reg.active.scriptURL.includes('sw.js')) {
-        // Keep it - just make sure it updates
-        reg.update().catch(function(){});
-      }
-    });
-  });
-  navigator.serviceWorker.register('sw.js').catch(function(){});
-}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 // ====== FIREBASE TIMEOUT FALLBACK ======
 // If Firebase data doesn't load in 8s, hide spinner and show retry
@@ -1268,11 +1260,7 @@ function handleInitialHash() {
 
 
 // ====== LOAD DATA ======
-// Products loader with retry
-let _productLoadAttempt = 0;
-function loadProducts() {
-  _productLoadAttempt++;
-  db.ref('products').on('value', s=>{
+db.ref('products').on('value', s=>{
   allProducts=[];
   const spinner=document.getElementById('loading-spinner');
   if(spinner) { spinner.style.display='none'; spinner.style.visibility='hidden'; }
@@ -1296,8 +1284,19 @@ function loadProducts() {
   const _sp = document.getElementById('loading-spinner');
   if(_sp) setTimeout(function(){ _sp.style.display='none'; }, 3000);
 });
-}
-loadProducts();
+// Fallback: 5 seconds — if spinner still showing, hide it
+setTimeout(function(){
+  var sp=document.getElementById('loading-spinner');
+  var gr=document.getElementById('product-grid');
+  if(sp&&sp.style.display!=='none'){
+    sp.style.display='none';
+    if(gr&&!gr.innerHTML.trim()){
+      gr.innerHTML='<div style="text-align:center;color:#aaa;grid-column:span 2;padding:48px 20px;">' +
+        '<div style="font-size:2rem;margin-bottom:8px;">⚡</div>' +
+        '<b>Slow connection.</b> <a href="javascript:location.reload()" style="color:#702122;">Refresh</a></div>';
+    }
+  }
+},5000);
 db.ref('categories').on('value', s=>{
   const c=document.getElementById('cat-container');c.innerHTML='';
   if(s.exists()) s.forEach(snp=>{
