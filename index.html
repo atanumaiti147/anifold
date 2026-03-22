@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
@@ -525,6 +526,83 @@ header{position:sticky;top:0;z-index:100;background:var(--header-bg);backdrop-fi
 /* Policy page */
 #policy-full-page{position:fixed;inset:0;background:var(--card-bg);z-index:9999;padding:20px;overflow-y:auto;}
 </style>
+
+<!-- BUG FIX PATCH CSS START -->
+<style id="af-bugfix-css">
+/* ======================================================
+   DARK MODE LOGO FIX
+   Admin panel se dono logo URLs set kar sako:
+   meta/brand/darkLogoUrl = dark mode logo
+   meta/brand/lightLogoUrl = light mode logo  
+   ====================================================== */
+
+/* Default: light mode logo visible */
+#head-logo, #side-logo { transition: opacity 0.3s; }
+
+/* Dark mode — white border glow so logo visible rahe */
+[data-theme="dark"] #head-logo {
+  filter: drop-shadow(0 0 1px rgba(255,255,255,0.15));
+}
+[data-theme="dark"] #side-logo {
+  filter: drop-shadow(0 0 1px rgba(255,255,255,0.1));
+}
+
+/* ======================================================
+   REVIEW FORM FIX
+   ====================================================== */
+#review-form-wrap { transition: all 0.2s; }
+.review-login-prompt {
+  text-align: center;
+  padding: 16px;
+  color: #aaa;
+  font-size: .88rem;
+  background: var(--gray);
+  border-radius: var(--radius);
+  border: 1px dashed var(--border);
+}
+.star { user-select: none; }
+.star:hover { transform: scale(1.15); }
+.star:hover ~ .star { color: #ddd !important; }
+
+/* ======================================================
+   PUSH NOTIFICATION BANNER (in-app fallback)
+   ====================================================== */
+#af-notif-banner {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: var(--dark);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 50px;
+  font-size: .85rem;
+  font-weight: 700;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  z-index: 9999;
+  white-space: nowrap;
+  max-width: calc(100vw - 40px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+[data-theme="dark"] #af-notif-banner {
+  background: #1e1e1e;
+  border-color: rgba(255,255,255,0.15);
+}
+#af-notif-banner.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+</style>
+<!-- BUG FIX PATCH CSS END -->
+
 </head>
 <body>
 <div id="toast-container"></div>
@@ -1487,7 +1565,7 @@ window.confirmOrderMobile=event=>{const b=document.getElementById('co-place-btn'
 
 window.confirmOrder=event=>{
   if(!razorpayKey){showToast("Payment not configured",'error');return;}
-  if(!auth.currentUser){showToast("Please login first",'error');nav('auth');return;}
+  if(!auth.currentUser){showToast("Please login first",'error');return;}
   const btn=event.target;btn.disabled=true;btn.innerText="Opening Payment...";
   const amt=Math.round(checkoutFinalAmount*100);
   const orderDate=new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
@@ -1678,5 +1756,493 @@ function clearAutofill(){const si=document.getElementById('search-input');if(!si
 setTimeout(clearAutofill,100);setTimeout(clearAutofill,500);setTimeout(clearAutofill,1500);
 document.addEventListener('click',function(){setTimeout(clearAutofill,50);},true);
 </script>
+
+<!-- BUG FIX PATCH START -->
+<div id="af-notif-banner">
+  <span>🔔</span>
+  <span id="af-notif-text"></span>
+</div>
+
+<script>
+// ==============================================================
+// BUG FIX PATCH — Overrides broken functions
+// ==============================================================
+
+// ============================================================
+// FIX 1: DARK MODE LOGO
+// Ab dark/light mode switch hone pe correct logo show hoga
+// Admin Panel → Settings → Brand → Dark Mode Logo URL save karo
+// ============================================================
+
+// Logo URLs stored globally
+window._logoLight = '';
+window._logoDark  = '';
+
+// Override toggleDarkMode to also swap logo
+(function() {
+  const _origToggle = window.toggleDarkMode;
+  window.toggleDarkMode = function() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const newTheme = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('af_darkmode', newTheme === 'dark' ? '1' : '0');
+
+    const icon = document.getElementById('menu-dm-icon');
+    if (icon) icon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+
+    // Apply correct logo for new theme
+    applyThemeLogo(newTheme);
+  };
+})();
+
+function applyThemeLogo(theme) {
+  const isDark = theme === 'dark';
+  const hl = document.getElementById('head-logo');
+  const sl = document.getElementById('side-logo');
+
+  // If admin has set separate dark/light logos, use them
+  if (isDark && window._logoDark) {
+    if (hl) { hl.src = window._logoDark; hl.style.display = 'block'; }
+    if (sl) { sl.src = window._logoDark; sl.style.display = 'block'; }
+  } else if (!isDark && window._logoLight) {
+    if (hl) { hl.src = window._logoLight; hl.style.display = 'block'; }
+    if (sl) { sl.src = window._logoLight; sl.style.display = 'block'; }
+  }
+  // else: keep existing logo (CSS filter handles visibility)
+}
+
+// Patch Firebase meta listener to load dark/light logos
+(function() {
+  const _origMetaListener = window._metaListenerPatched;
+  if (!_origMetaListener) {
+    window._metaListenerPatched = true;
+
+    // Watch for logo changes after Firebase loads
+    if (typeof db !== 'undefined') {
+      db.ref('meta/brand').on('value', function(s) {
+        if (!s.exists()) return;
+        const v = s.val();
+        // Store logo URLs
+        if (v.lightLogoUrl) window._logoLight = v.lightLogoUrl;
+        if (v.darkLogoUrl)  window._logoDark  = v.darkLogoUrl;
+
+        // Apply immediately based on current theme
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        applyThemeLogo(isDark ? 'dark' : 'light');
+      });
+    }
+  }
+})();
+
+// Apply on page load
+const _initTheme = document.documentElement.getAttribute('data-theme') || 'light';
+applyThemeLogo(_initTheme);
+
+
+// ============================================================
+// FIX 2: REVIEWS — Complete rewrite
+// Problems fixed:
+// - Form hidden even when logged in
+// - Star rating not resetting
+// - Auth state not reflecting on form
+// - Better UX feedback
+// ============================================================
+
+let _selectedStar = 5; // local variable to avoid global conflicts
+
+// Override setStarRating
+window.setStarRating = function(val) {
+  _selectedStar = val;
+  // Update ALL stars in the product page star input
+  const stars = document.querySelectorAll('#star-rating-input .star');
+  stars.forEach(function(s, i) {
+    s.classList.toggle('active', i < val);
+  });
+  // Also update selectedStarRating global (backward compat)
+  if (typeof selectedStarRating !== 'undefined') {
+    window.selectedStarRating = val;
+  }
+};
+
+// Override loadProductReviews — fixed version
+window.loadProductReviews = function(pk) {
+  if (typeof currentProductKey !== 'undefined') {
+    window.currentProductKey = pk;
+  }
+
+  const list = document.getElementById('product-reviews-list');
+  if (!list) return;
+
+  list.innerHTML = '<div style="text-align:center;padding:20px;"><div class="page-loader" style="margin:0 auto;"></div></div>';
+
+  db.ref('reviews/' + pk).once('value').then(function(s) {
+    list.innerHTML = '';
+    if (!s.exists()) {
+      list.innerHTML = '<p style="color:#aaa;font-size:.88rem;text-align:center;padding:16px 0;">No reviews yet. Be the first! 🌟</p>';
+    } else {
+      let html = ''; let count = 0;
+      s.forEach(function(r) {
+        const v = r.val();
+        if (!v.approved) return;
+        count++;
+        const rating = v.rating || 5;
+        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        const dateStr = v.date ? new Date(v.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        html += '<div class="review-card" style="animation:slideUp 0.3s ease ' + (count * 0.05) + 's both;">' +
+          '<div class="review-stars">' + stars + '</div>' +
+          '<div class="review-user">' + (v.userName || 'Anonymous') + '</div>' +
+          '<div class="review-date">' + dateStr + '</div>' +
+          '<div class="review-text">' + sanitize(v.comment || '') + '</div>' +
+          '</div>';
+      });
+      list.innerHTML = html || '<p style="color:#aaa;font-size:.88rem;text-align:center;padding:16px 0;">No approved reviews yet.</p>';
+    }
+  }).catch(function() {
+    list.innerHTML = '<p style="color:#aaa;font-size:.88rem;text-align:center;padding:16px 0;">Could not load reviews.</p>';
+  });
+
+  // Fix: Update review form based on CURRENT auth state
+  updateReviewFormAuth();
+};
+
+// Update review form based on current auth
+function updateReviewFormAuth() {
+  const formWrap = document.getElementById('review-form-wrap');
+  if (!formWrap) return;
+
+  const user = auth.currentUser;
+  if (user) {
+    // Show the form
+    formWrap.style.display = 'block';
+    // Restore original form if it was replaced with login prompt
+    if (formWrap.querySelector('.review-login-prompt')) {
+      formWrap.innerHTML =
+        '<div style="font-size:.88rem;font-weight:800;margin-bottom:8px;color:var(--dark);">Write a Review</div>' +
+        '<div class="star-rating" id="star-rating-input">' +
+          '<span class="star" onclick="setStarRating(1)">★</span>' +
+          '<span class="star" onclick="setStarRating(2)">★</span>' +
+          '<span class="star" onclick="setStarRating(3)">★</span>' +
+          '<span class="star" onclick="setStarRating(4)">★</span>' +
+          '<span class="star" onclick="setStarRating(5)">★</span>' +
+        '</div>' +
+        '<textarea id="review-comment" class="r-input" rows="3" placeholder="Share your experience with this template..."></textarea>' +
+        '<button class="r-btn" onclick="submitReview()">Submit Review</button>';
+      // Set default 5 stars
+      setStarRating(5);
+    }
+  } else {
+    // Show login prompt instead of form
+    formWrap.style.display = 'block';
+    formWrap.innerHTML =
+      '<div class="review-login-prompt">' +
+        '🔐 <a onclick="closeAllDrawers();nav(\'auth\')" style="color:var(--primary);cursor:pointer;font-weight:700;">Login</a> to write a review' +
+      '</div>';
+  }
+}
+
+// Override submitReview — fixed version
+window.submitReview = function() {
+  const user = auth.currentUser;
+  if (!user) {
+    showToast('Please login to write a review', 'error');
+    nav('auth');
+    return;
+  }
+
+  const comment = document.getElementById('review-comment');
+  if (!comment || !comment.value.trim()) {
+    showToast('Please write a comment first', 'error');
+    // Shake the textarea
+    if (comment) { comment.style.borderColor = '#dc2626'; setTimeout(function(){comment.style.borderColor='';}, 1500); }
+    return;
+  }
+
+  // Get current star rating
+  const rating = _selectedStar || window.selectedStarRating || 5;
+  const text = comment.value.trim();
+
+  // Disable submit button
+  const btn = document.querySelector('.r-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting...'; }
+
+  db.ref('users/' + user.uid).once('value').then(function(s) {
+    const u = s.val() || {};
+    const userName = [u.firstName || '', u.lastName || ''].join(' ').trim() || 'Customer';
+    const productName = (typeof currentProduct !== 'undefined' && currentProduct) ? currentProduct.title : '';
+    const productKey = window.currentProductKey || '';
+
+    return db.ref('reviews/' + productKey).push({
+      rating: rating,
+      comment: text,
+      userName: userName,
+      date: Date.now(),
+      approved: false,
+      productName: productName,
+      userEmail: user.email,
+      uid: user.uid
+    });
+  }).then(function() {
+    // Success
+    showToast('Review submitted! ✅ It will appear after approval.', 'success');
+    if (comment) comment.value = '';
+    setStarRating(5);
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Review'; }
+
+    // Show submitted state briefly
+    const formWrap = document.getElementById('review-form-wrap');
+    if (formWrap) {
+      const origHTML = formWrap.innerHTML;
+      formWrap.innerHTML = '<div style="text-align:center;padding:20px;color:#16a34a;font-weight:700;font-size:.9rem;background:#d1fae5;border-radius:10px;">🌟 Review submitted! Awaiting approval.</div>';
+      setTimeout(function() {
+        formWrap.innerHTML = origHTML;
+        setStarRating(5);
+        // Re-attach onclick
+        const stars = formWrap.querySelectorAll('.star');
+        stars.forEach(function(s, i) { s.onclick = function() { setStarRating(i + 1); }; });
+      }, 3000);
+    }
+  }).catch(function(e) {
+    showToast('Failed to submit review. Please try again.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Review'; }
+    console.warn('Review submit error:', e);
+  });
+};
+
+// Update form when auth state changes
+if (typeof auth !== 'undefined') {
+  auth.onAuthStateChanged(function(user) {
+    // Update review form if product page is visible
+    const pdView = document.getElementById('view-product-page');
+    if (pdView && !pdView.classList.contains('hidden')) {
+      updateReviewFormAuth();
+    }
+  });
+}
+
+// Helper: sanitize HTML
+function sanitize(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+
+// ============================================================
+// FIX 3: PUSH NOTIFICATIONS — Complete rewrite
+// Problems fixed:
+// - Old notifications showing on every page load
+// - 30 second window too narrow
+// - No in-app fallback when browser notifications denied
+// - Proper deduplication using localStorage
+// ============================================================
+
+// Override requestPushPermission
+window.requestPushPermission = function(uid) {
+  if (!('Notification' in window)) {
+    // No browser support — use in-app notifications only
+    setupFirebaseNotifListener(uid, false);
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    setupFirebaseNotifListener(uid, true);
+  } else if (Notification.permission === 'default') {
+    // Ask after a small delay (better UX)
+    setTimeout(function() {
+      Notification.requestPermission().then(function(perm) {
+        setupFirebaseNotifListener(uid, perm === 'granted');
+      });
+    }, 3000);
+  } else {
+    // Permission denied — use in-app fallback
+    setupFirebaseNotifListener(uid, false);
+  }
+};
+
+// Override storePushSub
+window.storePushSub = function(uid) {
+  if (typeof db === 'undefined') return;
+  db.ref('pushSubscriptions/' + uid).set({ uid: uid, subscribedAt: Date.now() });
+  setupFirebaseNotifListener(uid, Notification.permission === 'granted');
+};
+
+// Core notification listener — FIXED
+let _notifListenerSet = false;
+function setupFirebaseNotifListener(uid, canBrowserNotify) {
+  if (_notifListenerSet) return;
+  _notifListenerSet = true;
+
+  if (typeof db === 'undefined') return;
+
+  // Store last seen notification timestamp in localStorage
+  const STORAGE_KEY = 'af_last_notif_ts';
+  const lastSeenTs  = parseInt(localStorage.getItem(STORAGE_KEY) || '0');
+
+  db.ref('meta/latestNotification').on('value', function(s) {
+    if (!s.exists()) return;
+    const n = s.val();
+    const sentAt = parseInt(n.sentAt) || 0;
+
+    // Skip: no valid timestamp
+    if (!sentAt) return;
+
+    // Skip: already seen this notification or an older one
+    if (sentAt <= lastSeenTs) return;
+
+    // Skip: notification is older than 24 hours (stale)
+    if (Date.now() - sentAt > 86400000) return;
+
+    // Mark as seen BEFORE showing (prevents duplicates on re-render)
+    localStorage.setItem(STORAGE_KEY, sentAt.toString());
+
+    const title = n.title || 'Anifold Store';
+    const body  = n.body  || '';
+    const icon  = n.icon  || 'https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png';
+    const url   = n.url   || 'https://anifold.shop';
+
+    // Method 1: Browser native notification
+    if (canBrowserNotify && Notification.permission === 'granted') {
+      try {
+        const notif = new Notification(title, {
+          body:  body,
+          icon:  icon,
+          badge: icon,
+          tag:   'anifold-' + sentAt  // prevents duplicate
+        });
+        notif.onclick = function() {
+          window.focus();
+          if (url && url !== 'https://anifold.shop') window.open(url, '_blank');
+          notif.close();
+        };
+      } catch(e) {
+        // Fall through to in-app
+        showInAppNotif(title, body, url);
+      }
+    } else {
+      // Method 2: In-app banner notification
+      showInAppNotif(title, body, url);
+    }
+  });
+}
+
+// Show in-app notification banner (works even without browser permission)
+function showInAppNotif(title, body, url) {
+  const banner = document.getElementById('af-notif-banner');
+  const text   = document.getElementById('af-notif-text');
+  if (!banner || !text) return;
+
+  text.textContent = title + (body ? ' — ' + body : '');
+  banner.style.cursor = url ? 'pointer' : 'default';
+  banner.onclick = url ? function() { window.open(url, '_blank'); } : null;
+
+  // Show
+  banner.classList.add('show');
+
+  // Also show as toast
+  showToast('📢 ' + title, 'info');
+
+  // Auto-hide after 6 seconds
+  clearTimeout(window._notifBannerTimer);
+  window._notifBannerTimer = setTimeout(function() {
+    banner.classList.remove('show');
+  }, 6000);
+}
+
+// Also listen for notifications when user is not subscribed
+// (broadcast to all connected users)
+(function() {
+  if (typeof db === 'undefined') return;
+
+  const STORAGE_KEY = 'af_last_notif_ts';
+  const lastSeenTs  = parseInt(localStorage.getItem(STORAGE_KEY) || '0');
+
+  // Separate listener for anonymous/guest users
+  if (!auth.currentUser) {
+    db.ref('meta/latestNotification').once('value').then(function(s) {
+      if (!s.exists()) return;
+      const n = s.val();
+      const sentAt = parseInt(n.sentAt) || 0;
+      if (sentAt && sentAt > lastSeenTs && Date.now() - sentAt < 86400000) {
+        localStorage.setItem(STORAGE_KEY, sentAt.toString());
+        // Don't show on page load for non-subscribers
+      }
+    });
+  }
+})();
+
+
+// ============================================================
+// BONUS FIX: Admin's "SEND NOTIFICATION" also triggers in-app
+// for users currently browsing the store
+// ============================================================
+
+// This runs for ALL users (logged in or not)
+// after Firebase auth is resolved
+setTimeout(function() {
+  if (typeof db === 'undefined' || _notifListenerSet) return;
+  // Guest user notification setup
+  const STORAGE_KEY = 'af_last_notif_ts';
+  const lastSeenTs  = parseInt(localStorage.getItem(STORAGE_KEY) || '0');
+
+  db.ref('meta/latestNotification').on('value', function(s) {
+    if (!s.exists()) return;
+    const n = s.val();
+    const sentAt = parseInt(n.sentAt) || 0;
+    if (!sentAt || sentAt <= lastSeenTs || Date.now() - sentAt > 86400000) return;
+    localStorage.setItem(STORAGE_KEY, sentAt.toString());
+    showInAppNotif(n.title || 'Anifold Store', n.body || '', n.url || '');
+  });
+}, 2000);
+
+
+// ============================================================
+// BONUS FIX: Refresh product page review form on re-open
+// ============================================================
+(function() {
+  const _origOpenProduct = window.openProductPage;
+  if (_origOpenProduct) {
+    window.openProductPage = function(key) {
+      _origOpenProduct(key);
+      // After product page opens, reset star rating
+      setTimeout(function() {
+        _selectedStar = 5;
+        window.selectedStarRating = 5;
+        // Reset stars visually
+        const stars = document.querySelectorAll('#star-rating-input .star');
+        stars.forEach(function(s, i) { s.classList.toggle('active', i < 5); });
+      }, 100);
+    };
+  }
+})();
+
+
+// ============================================================
+// BONUS FIX: Dark mode — update dark-toggle button in header
+// Make sure both header toggle + menu toggle stay in sync
+// ============================================================
+(function() {
+  function syncDarkToggleUI() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const icon = document.getElementById('menu-dm-icon');
+    if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+    applyThemeLogo(isDark ? 'dark' : 'light');
+  }
+
+  // Sync on load
+  syncDarkToggleUI();
+
+  // Observe theme changes (handles programmatic changes too)
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.attributeName === 'data-theme') syncDarkToggleUI();
+    });
+  });
+  observer.observe(document.documentElement, { attributes: true });
+})();
+
+
+console.log('%c✅ Anifold BugFix Patch Loaded', 'color:#00e676;font-weight:bold;font-size:13px;');
+</script>
+<!-- BUG FIX PATCH END -->
+
 </body>
 </html>
+```
