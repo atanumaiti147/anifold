@@ -640,7 +640,17 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
       <p style="text-align:center;font-size:0.68rem;color:#aaa;margin-top:5px;">100% secure • Razorpay</p>
     </div>
 
-    <div id="view-library" class="hidden"><div style="padding:20px 20px 10px;"><div class="section-title">📚 My Collection</div></div><div id="library-grid" class="grid"></div></div>
+    <div id="view-library" class="hidden">
+
+  <!-- Telegram Connect Banner -->
+  <div id="tg-banner" style="display:none;background:linear-gradient(135deg,#1c7ac7,#2aabee);border-radius:14px;padding:18px;margin:12px 16px;color:white;text-align:center;">
+    <div style="font-size:1.8rem;margin-bottom:6px;">✈️</div>
+    <div style="font-weight:800;font-size:1rem;margin-bottom:6px;">Get Downloads on Telegram!</div>
+    <div style="font-size:0.82rem;opacity:.9;margin-bottom:14px;">Connect Telegram to auto-receive download links after purchase.</div>
+    <button onclick="connectTelegram()" style="background:white;color:#2aabee;border:none;padding:11px 28px;border-radius:50px;font-weight:800;cursor:pointer;font-size:.9rem;">Connect Now →</button>
+  </div>
+
+  <div style="padding:20px 20px 10px;"><div class="section-title">📚 My Collection</div></div><div id="library-grid" class="grid"></div></div>
 
     <div id="view-wishlist" class="hidden">
       <div style="padding:20px 20px 10px;"><div class="section-title">❤️ Wishlist</div></div>
@@ -909,6 +919,7 @@ let cart=JSON.parse(localStorage.getItem('anifoldCart'))||[];
 let wishlist=JSON.parse(localStorage.getItem('anifoldWishlist'))||[];
 let activeCoupon=null, taxSettings={value:0,type:'percent'}, checkoutItems=[], checkoutFinalAmount=0;
 let currentImages=[], currentSlideIdx=0, selectedStarRating=5;
+let telegramConfig = {};   // ← YEH ADD KARO
 let flashSaleData=null, deferredPwaPrompt=null;
 
 // ====== TOAST ======
@@ -1047,6 +1058,7 @@ auth.onAuthStateChanged(u => {
       if(s.exists()){const v=s.val();const n=`${v.firstName||''} ${v.lastName||''}`.trim();document.getElementById('profile-name').textContent=n||u.email;document.getElementById('profile-avatar').textContent=v.firstName?v.firstName[0].toUpperCase():'👤';}
     });
     requestPushPermission(u.uid);
+    checkTelegramLink(u.uid);   // ← YEH ADD KARO
   } else {
     aEls.forEach(el=>el.classList.add('hidden'));
     gEls.forEach(el=>el.classList.remove('hidden'));
@@ -1054,6 +1066,71 @@ auth.onAuthStateChanged(u => {
 });
 
 window.doLogout = () => auth.signOut().then(()=>{nav('home');showToast("Logged out");});
+// ====== TELEGRAM ======
+function checkTelegramLink(uid) {
+  db.ref('users/'+uid+'/telegramChatId').once('value').then(function(s) {
+    var linked = s.exists() && s.val();
+    var banner   = document.getElementById('tg-banner');
+    var menuText = document.getElementById('menu-tg-text');
+    if (banner)   banner.style.display = linked ? 'none' : 'block';
+    if (menuText) menuText.textContent  = linked ? 'Telegram Connected ✅' : 'Connect Telegram';
+  });
+}
+
+window.connectTelegram = function() {
+  if (!auth.currentUser) { showToast('Please login first', 'error'); nav('auth'); return; }
+  if (!telegramConfig.botUsername) { showToast('Telegram bot not configured yet.', 'error'); return; }
+  var url = 'https://t.me/' + telegramConfig.botUsername + '?start=' + auth.currentUser.uid;
+  window.open(url, '_blank');
+  showToast('Bot se /start message karo — link ho jayega! ✈️', 'info');
+  closeAllDrawers();
+};
+
+async function sendAdminTelegramNotify(items, paymentId, totalAmt) {
+  try {
+    if (!telegramConfig.botToken || !telegramConfig.adminChatId) return;
+    var itemList = items.map(function(i) {
+      return '• ' + i.title + ' — ₹' + (getFlashPrice(i) || i.discountedPrice);
+    }).join('\n');
+    var msg = '🛒 <b>NEW ORDER!</b>\n\n' + itemList +
+              '\n\n💰 Total: ₹' + parseFloat(totalAmt).toFixed(2) +
+              '\n📧 ' + auth.currentUser.email +
+              '\n🆔 ' + (paymentId || '—') +
+              '\n⏰ ' + new Date().toLocaleString('en-IN');
+    await fetch('https://api.telegram.org/bot' + telegramConfig.botToken + '/sendMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: telegramConfig.adminChatId, text: msg, parse_mode: 'HTML' })
+    });
+  } catch(e) {}
+}
+
+async function sendUserTelegramLinks(uid, items) {
+  try {
+    if (!telegramConfig.botToken) return;
+    var snap   = await db.ref('users/' + uid + '/telegramChatId').once('value');
+    var chatId = snap.val();
+    if (!chatId) return;
+
+    var msg = '✅ <b>Order Confirmed!</b>\n\nHere are your download links:\n\n';
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      var ls   = await db.ref('secure_links/' + item.key).once('value');
+      if (ls.exists()) {
+        var lv   = ls.val();
+        var link = lv.url || lv.link || '';
+        if (link) msg += '📥 <b>' + item.title + '</b>\n' + link + '\n\n';
+      }
+    }
+    msg += '🎌 Thank you for shopping at AniFold!';
+
+    await fetch('https://api.telegram.org/bot' + telegramConfig.botToken + '/sendMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'HTML' })
+    });
+  } catch(e) {}
+}
 
 // ====== PUSH NOTIFICATIONS ======
 function requestPushPermission(uid) {
@@ -1308,6 +1385,7 @@ db.ref('meta').on('value', s=>{
       cDiv.innerHTML=`<a href="${v.contact.instagram}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(45deg,#405de6,#833ab4,#c13584,#e1306c);color:white;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;margin-top:12px;">📸 Follow on Instagram</a>`;
     }
   }
+  if(v.telegram) telegramConfig = v.telegram;    // ← YEH ADD KARO
   if(v.flashSale&&v.flashSale.active){flashSaleData=v.flashSale;startFlashBanner(v.flashSale);}
   else{flashSaleData=null;document.getElementById('flash-banner').style.display='none';}
 });
@@ -1632,6 +1710,10 @@ window.confirmOrder = event => {
         payment_id:   resp.razorpay_payment_id
       });
 
+
+      // Telegram notifications (background)
+      sendAdminTelegramNotify(checkoutItems, resp.razorpay_payment_id, checkoutFinalAmount);
+      sendUserTelegramLinks(auth.currentUser.uid, checkoutItems);
       // 3. Clear cart and redirect
       if(cart.some(c => c.key === checkoutItems[0]?.key)){
         cart = [];
