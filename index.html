@@ -18,7 +18,7 @@
 <meta property="og:url" content="https://anifold.shop/">
 <meta property="og:title" content="Anifold Store — Anime Papercraft Templates">
 <meta property="og:description" content="Premium anime papercraft templates. Download, print & build your favorite characters. Naruto, One Piece, Demon Slayer and more!">
-<meta property="og:image" content="https://i.ibb.co/4wXjKXs2/20260102-204547.png">
+<meta property="og:image" content="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png">
 <meta property="og:site_name" content="Anifold Store">
 <meta property="og:locale" content="en_IN">
 
@@ -26,7 +26,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Anifold Store — Anime Papercraft Templates">
 <meta name="twitter:description" content="Download premium anime papercraft templates. Build 3D anime characters at home!">
-<meta name="twitter:image" content="https://i.ibb.co/4wXjKXs2/20260102-204547.png">
+<meta name="twitter:image" content="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png">
 
 <!-- JSON-LD -->
 <script type="application/ld+json">
@@ -35,7 +35,7 @@
   "@type": "Store",
   "name": "Anifold Store",
   "url": "https://anifold.shop",
-  "logo": "https://i.ibb.co/4wXjKXs2/20260102-204547.png",
+  "logo": "https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png",
   "description": "Premium anime papercraft templates for download and print",
   "currenciesAccepted": "INR",
   "paymentAccepted": "UPI, Credit Card, Debit Card",
@@ -50,8 +50,8 @@
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="https://i.ibb.co/4wXjKXs2/20260102-204547.png" type="image/png">
-<link rel="apple-touch-icon" href="https://i.ibb.co/4wXjKXs2/20260102-204547.png">
+<link rel="icon" href="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png" type="image/png">
+<link rel="apple-touch-icon" href="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png">
 
 <!-- Security -->
 <script>
@@ -78,14 +78,7 @@ document.onkeydown = function(e) {
 
 <!-- EmailJS — direct browser se email, no server needed -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<script>
-  // EmailJS init — replace with your keys from emailjs.com
-  (function(){
-    if(typeof emailjs !== 'undefined') {
-      emailjs.init({ publicKey: "EMAILJS_PUBLIC_KEY" }); // ← emailjs.com se copy karo
-    }
-  })();
-</script>
+<!-- EmailJS is initialized dynamically from Firebase meta/emailjs — see initEmailJS() -->
 <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -590,7 +583,8 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
       <div class="info-card">
         <div class="info-item"><div class="c-icon">📍</div><div><div style="font-weight:700;margin-bottom:3px;font-size:0.9rem;">Location</div><div id="con-address-val" style="font-size:0.85rem;color:#555;">Loading...</div></div></div>
         <div class="info-item"><div class="c-icon">🕒</div><div><div style="font-weight:700;margin-bottom:3px;font-size:0.9rem;">Hours</div><div id="con-hours-val" style="font-size:0.85rem;color:#555;">Loading...</div></div></div>
-        <div class="info-item" style="margin-bottom:0;"><div class="c-icon">💬</div><div><div style="font-weight:700;margin-bottom:3px;font-size:0.9rem;">WhatsApp</div><a id="con-wa-link" href="#" style="color:var(--primary);font-weight:700;text-decoration:none;font-size:0.85rem;">Chat Now →</a></div></div>
+        <div class="info-item"><div class="c-icon">💬</div><div><div style="font-weight:700;margin-bottom:3px;font-size:0.9rem;">WhatsApp</div><a id="con-wa-link" href="#" style="color:var(--primary);font-weight:700;text-decoration:none;font-size:0.85rem;">Chat Now →</a></div></div>
+        <div class="info-item" style="margin-bottom:0;"><div class="c-icon">📧</div><div><div style="font-weight:700;margin-bottom:3px;font-size:0.9rem;">Email</div><div id="con-email-val" style="font-size:0.85rem;color:#555;">support@anifold.shop</div></div></div>
         <div id="contact-socials" style="margin-top:16px;"></div>
       </div>
       <div class="info-card">
@@ -665,49 +659,62 @@ const googleProvider = new firebase.auth.GoogleAuthProvider();
 // ====== BACKEND URL ======
 const BACKEND = "https://craftyam.anifold.shop/create_order.php";
 
-// ====== EMAILJS CONFIG — emailjs.com se keys copy karo ======
-const EJS_SERVICE_ID  = "service_948q7mq";   // emailjs.com → Email Services
-const EJS_PUBLIC_KEY  = "BozK3GzWwohq9RawA";   // emailjs.com → Account → Public Key
+// ====== EMAILJS CONFIG — Admin Panel → Settings → EmailJS se auto-load hota hai ======
+let EJS_SERVICE_ID  = '';
+let EJS_PUBLIC_KEY  = '';
+let EJS_TEMPLATE_ORDER   = '';
+let EJS_TEMPLATE_WELCOME = '';
+let EJS_TEMPLATE_CONTACT = '';
+let EJS_READY = false;
 
-// OrderConfirm template variables: to_email, to_name, product_name, order_total, payment_id
-const EJS_TEMPLATE_ORDER   = "template_v8x6exa";    // EmailJS template ID
-// Contact template variables: from_name, from_email, message
-const EJS_TEMPLATE_CONTACT = "template_uxxobnl";  // EmailJS template ID
+// Admin panel se save kiya EmailJS config Firebase se load hota hai
+function initEmailJS(cfg) {
+  if(!cfg || !cfg.serviceId || !cfg.publicKey) return;
+  EJS_SERVICE_ID       = cfg.serviceId;
+  EJS_PUBLIC_KEY       = cfg.publicKey;
+  EJS_TEMPLATE_ORDER   = cfg.templateOrder   || '';
+  EJS_TEMPLATE_WELCOME = cfg.templateWelcome || '';
+  EJS_TEMPLATE_CONTACT = cfg.templateContact || '';
+  if(typeof emailjs !== 'undefined' && EJS_PUBLIC_KEY) {
+    try { emailjs.init({ publicKey: EJS_PUBLIC_KEY }); EJS_READY = true; } catch(e) {}
+  }
+}
 
-// ====== UNIVERSAL EMAIL SENDER ======
+// ====== UNIVERSAL EMAIL SENDER (PHP + EmailJS fallback) ======
 async function callEmail(action, data) {
-  // Method 1: Try PHP backend first (3s timeout)
+  // Method 1: PHP backend (3s timeout, silent fail)
   try {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 3000);
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 3000);
     const res = await fetch(BACKEND + "?action=" + action, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-      signal: controller.signal
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data), signal: ctrl.signal
     });
-    if(res.ok) { const d=await res.json().catch(()=>({})); if(d.success) return; }
+    if(res.ok) { const d = await res.json().catch(()=>({})); if(d.success) return; }
   } catch(e) {}
 
-  // Method 2: EmailJS fallback
+  // Method 2: EmailJS (if configured in admin panel)
+  if(!EJS_READY || typeof emailjs === 'undefined') return;
   try {
-    if(typeof emailjs === 'undefined') return;
     let templateId, params;
     if(action === 'order_email') {
+      if(!EJS_TEMPLATE_ORDER) return;
       templateId = EJS_TEMPLATE_ORDER;
       params = { to_email: data.to_email, to_name: data.to_name,
-                 product_name: data.product_name, order_total: data.order_total,
+                 product_names: data.product_name, order_total: data.order_total,
                  payment_id: data.payment_id, order_date: data.order_date };
     } else if(action === 'welcome_email') {
+      if(!EJS_TEMPLATE_WELCOME) return;
       templateId = EJS_TEMPLATE_WELCOME;
       params = { to_email: data.to_email, to_name: data.to_name };
     } else if(action === 'contact_email') {
+      if(!EJS_TEMPLATE_CONTACT) return;
       templateId = EJS_TEMPLATE_CONTACT;
-      params = { from_name: data.to_name, from_email: data.to_email, message: data.message,
-                 reply_to: data.to_email };
+      params = { from_name: data.to_name || data.from_name, from_email: data.to_email || data.from_email,
+                 message: data.message, reply_to: data.to_email || data.from_email };
     } else return;
     await emailjs.send(EJS_SERVICE_ID, templateId, params, { publicKey: EJS_PUBLIC_KEY });
-  } catch(e) { console.warn('Email failed:', e); }
+  } catch(e) { console.warn('EmailJS failed:', e); }
 }
 
 // ====== POLICY PAGE — hash based ======
@@ -1038,17 +1045,30 @@ db.ref('meta').on('value', s=>{
   }
   if(v.payment){taxSettings.value=parseFloat(v.payment.taxValue||0);taxSettings.type=v.payment.taxType||'percent';razorpayKey=v.payment.keyId||razorpayKey;}
   if(v.razorpay) razorpayKey=v.razorpay.keyId||razorpayKey;
+  // Load EmailJS config from admin panel settings
+  if(v.emailjs) initEmailJS(v.emailjs);
   if(v.app&&v.app.url){document.getElementById('menu-download-app').href=v.app.url;document.getElementById('menu-download-app').classList.remove('hidden');}
   if(v.contact){
     document.getElementById('con-hours-val').innerText=v.contact.hours||'-';
     document.getElementById('con-address-val').innerText=v.contact.address||'-';
-    if(v.contact.whatsapp) document.getElementById('con-wa-link').href=`https://wa.me/${v.contact.whatsapp}`;
+    if(v.contact.whatsapp) {
+    document.getElementById('con-wa-link').href=`https://wa.me/${v.contact.whatsapp}`;
+    // Update WA float button too
+    const waFloat = document.querySelector('.wa-float');
+    if(waFloat) waFloat.href = `https://wa.me/${v.contact.whatsapp}`;
+    // Store globally for popup
+    window._waLink = `https://wa.me/${v.contact.whatsapp}`;
+  }
     const sDiv=document.getElementById('footer-socials');const cDiv=document.getElementById('contact-socials');
     sDiv.innerHTML='';cDiv.innerHTML='';
+    if(v.contact.email) {
+      const el=document.getElementById('con-email-val');
+      if(el) el.innerHTML=`<a href="mailto:${v.contact.email}" style="color:var(--primary);font-weight:700;text-decoration:none;">${v.contact.email}</a>`;
+    }
     if(v.contact.youtube) sDiv.innerHTML+=`<a href="${v.contact.youtube}" target="_blank" style="color:rgba(255,255,255,0.55);font-size:1rem;font-weight:600;text-decoration:none;padding:6px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:20px;">▶ YouTube</a>`;
     if(v.contact.instagram){
-      sDiv.innerHTML+=`<a href="${v.contact.instagram}" target="_blank" style="color:rgba(255,255,255,0.55);font-size:1rem;font-weight:600;text-decoration:none;padding:6px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:20px;">Instagram</a>`;
-      cDiv.innerHTML=`<a href="${v.contact.instagram}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(45deg,#405de6,#833ab4,#c13584,#e1306c);color:white;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;margin-top:12px;">Follow on Instagram</a>`;
+      sDiv.innerHTML+=`<a href="${v.contact.instagram}" target="_blank" style="color:rgba(255,255,255,0.55);font-size:1rem;font-weight:600;text-decoration:none;padding:6px 12px;border:1px solid rgba(255,255,255,0.15);border-radius:20px;">📸 Instagram</a>`;
+      cDiv.innerHTML=`<a href="${v.contact.instagram}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(45deg,#405de6,#833ab4,#c13584,#e1306c);color:white;padding:12px;border-radius:10px;font-weight:700;text-decoration:none;margin-top:12px;">📸 Follow on Instagram</a>`;
     }
   }
   if(v.flashSale&&v.flashSale.active){flashSaleData=v.flashSale;startFlashBanner(v.flashSale);}
@@ -1409,7 +1429,7 @@ window.sendContactEmail = async () => {
 
   // STEP 3: Try emails in background (don't block UI)
   // EmailJS
-  if(typeof emailjs !== 'undefined' && EJS_SERVICE_ID !== 'EMAILJS_SERVICE_ID') {
+  if(EJS_READY && EJS_TEMPLATE_CONTACT) {
     emailjs.send(EJS_SERVICE_ID, EJS_TEMPLATE_CONTACT, {
       from_name: name, from_email: email, message: msg, reply_to: email
     }, { publicKey: EJS_PUBLIC_KEY }).catch(()=>{});
@@ -1421,6 +1441,7 @@ window.sendContactEmail = async () => {
   }).catch(()=>{});
 
   // ✅ Always show success popup immediately
+  showToast('Message sent! We will reply within 24 hours 📬');
   showContactSuccessPopup();
 };
 
@@ -1432,7 +1453,7 @@ function showContactSuccessPopup() {
     <div style="font-size:3.5rem;margin-bottom:10px;">📬</div>
     <div style="font-size:1.2rem;font-weight:900;color:#111827;margin-bottom:8px;">Message Sent!</div>
     <div style="font-size:0.88rem;color:#6b7280;line-height:1.7;margin-bottom:22px;">We received your message and will reply within <strong style="color:#702122;">24 hours</strong>. For instant help, WhatsApp us!</div>
-    <a href="https://wa.link/s62366" target="_blank" style="display:block;background:#25d366;color:#fff;padding:13px;border-radius:10px;font-weight:800;text-decoration:none;margin-bottom:10px;font-size:0.9rem;">💬 Chat on WhatsApp</a>
+    <a id="cs-wa-link" href="https://wa.link/s62366" target="_blank" style="display:block;background:#25d366;color:#fff;padding:13px;border-radius:10px;font-weight:800;text-decoration:none;margin-bottom:10px;font-size:0.9rem;">💬 Chat on WhatsApp</a>
     <button onclick="document.getElementById('cs-popup').remove()" style="width:100%;background:#f3f4f6;color:#555;border:none;padding:12px;border-radius:10px;font-weight:700;cursor:pointer;font-size:0.88rem;">Close</button>
   </div>`;
   document.body.appendChild(popup);
