@@ -389,12 +389,22 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 .toast.info { background: rgba(37,99,235,0.95); }
 @keyframes slideIn { from{transform:translateX(110%);opacity:0} to{transform:translateX(0);opacity:1} }
 @keyframes fadeOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(30px)} }
+/* ===== PWA INSTALL PROMPT ===== */
+#pwa-prompt { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 18px 20px; box-shadow: 0 -4px 30px rgba(0,0,0,0.1); z-index: 500; display: none; border-top: 3px solid var(--primary); }
+.pwa-inner { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.pwa-text h4 { font-size: 0.92rem; font-weight: 800; margin-bottom: 2px; }
+.pwa-text p { font-size: 0.78rem; color: var(--text-muted); }
+.pwa-btns { display: flex; gap: 8px; flex-shrink: 0; }
+.pwa-btn-yes { background: var(--primary); color: white; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
+.pwa-btn-no { background: #f3f4f6; color: #555; border: none; padding: 9px 14px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; }
+/* ===== POLICY FULL PAGE ===== */
+#policy-full-page { position: fixed; inset: 0; background: white; z-index: 9999; padding: 20px; overflow-y: auto; }
 </style>
 </head>
 <body>
 <div id="toast-container"></div>
 
-<div id="pwa-prompt">
+<div id="pwa-prompt" style="display:none;">
   <div class="pwa-inner">
     <div class="pwa-text"><h4>📱 Install Anifold App</h4><p>Add to home screen — works offline!</p></div>
     <div class="pwa-btns">
@@ -1366,6 +1376,10 @@ function getFlashPrice(p) {
 }
 
 // ====== PRODUCT GRID ======
+// Search state vars — must be declared before showRandomHome
+let _searchTimer = null;
+let _userSearching = false;
+
 window.showRandomHome = function() {
   if(_userSearching) return; // Don't override active search
   if(allProducts.length) renderGrid([...allProducts].sort(()=>0.5-Math.random()).slice(0,8),'product-grid');
@@ -1379,8 +1393,6 @@ window.openCategoryView = (cat)=>{
   document.getElementById('view-category').classList.remove('hidden');
   closeAllDrawers(); window.scrollTo(0,0);renderGrid(allProducts.filter(p=>p.category===cat),'cat-product-grid');};
 // Search: only fires when USER intentionally types
-let _searchTimer = null;
-let _userSearching = false;
 
 window.doSearch = function(q) {
   // Block ALL autofill: emails, phone numbers, long strings with special chars
