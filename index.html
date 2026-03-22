@@ -50,8 +50,20 @@
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png" type="image/png">
-<link rel="apple-touch-icon" href="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png">
+<link rel="icon" id="fav-icon" href="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png" type="image/png">
+<link rel="apple-touch-icon" id="fav-apple" href="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png">
+<script>
+// Load cached favicon INSTANTLY — no flicker on reload
+(function(){
+  var cached = localStorage.getItem('af_fav');
+  var def1 = 'https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png';
+  var def2 = 'https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png';
+  if(cached && cached !== def1 && cached !== def2) {
+    document.getElementById('fav-icon').href = cached;
+    document.getElementById('fav-apple').href = cached;
+  }
+})();
+</script>
 
 <!-- Security -->
 <script>
@@ -477,9 +489,11 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
     <div class="side-menu-logo">
       <img id="side-logo" src="https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png" alt="Anifold" style="display:block;height:44px;width:auto;max-width:160px;object-fit:contain;border-radius:8px;" onerror="this.style.display='none';">
       <script>
-      // Load cached side logo INSTANTLY
+      // Load cached side logo INSTANTLY — checks af_side first, then af_logo
       (function(){
-        var cached = localStorage.getItem('af_logo');
+        var sideCache = localStorage.getItem('af_side');
+        var logoCache = localStorage.getItem('af_logo');
+        var cached = sideCache || logoCache;
         var def1 = 'https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png';
         var def2 = 'https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png';
         if(cached && cached !== def1 && cached !== def2) {
@@ -1208,10 +1222,20 @@ db.ref('meta').on('value', s=>{
         hl.src=v.brand.headerLogoUrl;
       }
       const sl=document.getElementById('side-logo');
+      // Side logo: use sideLogoUrl if admin set one, else fall back to headerLogoUrl
       if(sl && sl.src !== v.brand.headerLogoUrl){sl.src=v.brand.headerLogoUrl;sl.style.display='block';}
     } else {
       // Default logo — clear any stale cache
       localStorage.removeItem('af_logo');
+    }
+    // Side menu logo — can be different from header logo
+    if(v.brand.sideLogoUrl && !_DEF_LOGOS.includes(v.brand.sideLogoUrl)) {
+      localStorage.setItem('af_side', v.brand.sideLogoUrl);
+      const sl = document.getElementById('side-logo');
+      if(sl && sl.src !== v.brand.sideLogoUrl) { sl.src = v.brand.sideLogoUrl; sl.style.display = 'block'; }
+    } else if(v.brand.sideLogoUrl === '' || (!v.brand.sideLogoUrl && v.brand.headerLogoUrl && !_DEF_LOGOS.includes(v.brand.headerLogoUrl))) {
+      // No separate side logo — use header logo or clear cache
+      if(!v.brand.sideLogoUrl) localStorage.removeItem('af_side');
     }
     if(v.brand.heroImageUrl && !_DEF_LOGOS.includes(v.brand.heroImageUrl)) {
       // Admin set a custom hero — save to cache + update DOM
@@ -1227,10 +1251,19 @@ db.ref('meta').on('value', s=>{
       localStorage.removeItem('af_hero');
     }
     if(v.brand.faviconUrl) {
-      const fav=document.querySelector('link[rel="icon"]');
-      const fav2=document.querySelector('link[rel="apple-touch-icon"]');
-      if(fav) fav.href=v.brand.faviconUrl;
-      if(fav2) fav2.href=v.brand.faviconUrl;
+      const _DEF_FAVS = [_DEF_LOGO,
+        "https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png"
+      ];
+      if(!_DEF_FAVS.includes(v.brand.faviconUrl)) {
+        // Save to cache + apply
+        localStorage.setItem('af_fav', v.brand.faviconUrl);
+        const fav = document.getElementById('fav-icon');
+        const fav2 = document.getElementById('fav-apple');
+        if(fav) fav.href = v.brand.faviconUrl;
+        if(fav2) fav2.href = v.brand.faviconUrl;
+      } else {
+        localStorage.removeItem('af_fav');
+      }
     }
   }
   if(v.payment){taxSettings.value=parseFloat(v.payment.taxValue||0);taxSettings.type=v.payment.taxType||'percent';razorpayKey=v.payment.keyId||razorpayKey;}
