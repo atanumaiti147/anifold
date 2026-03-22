@@ -389,20 +389,6 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 .toast.info { background: rgba(37,99,235,0.95); }
 @keyframes slideIn { from{transform:translateX(110%);opacity:0} to{transform:translateX(0);opacity:1} }
 @keyframes fadeOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(30px)} }
-.wa-float-container { position: fixed; bottom: 24px; right: 20px; z-index: 100; display: flex; flex-direction: column; align-items: flex-end; }
-.wa-bubble { background: white; color: #333; padding: 10px 28px 10px 14px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); margin-bottom: 10px; font-size: 0.82rem; font-weight: 600; position: relative; max-width: 200px; border: 1px solid #eee; }
-.wa-close { position: absolute; top: 4px; right: 8px; cursor: pointer; color: #aaa; font-size: 14px; }
-.wa-float { background: #25d366; border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; text-decoration: none; animation: waPulse 2.5s infinite; box-shadow: 0 4px 20px rgba(37,211,102,0.4); }
-.wa-float svg { width: 30px; height: 30px; fill: white; }
-@keyframes waPulse { 0%,100%{box-shadow:0 0 0 0 rgba(37,211,102,0.6)} 70%{box-shadow:0 0 0 14px rgba(37,211,102,0)} }
-#pwa-prompt { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 18px 20px; box-shadow: 0 -4px 30px rgba(0,0,0,0.1); z-index: 500; display: none; border-top: 3px solid var(--primary); }
-.pwa-inner { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.pwa-text h4 { font-size: 0.92rem; font-weight: 800; margin-bottom: 2px; }
-.pwa-text p { font-size: 0.78rem; color: var(--text-muted); }
-.pwa-btns { display: flex; gap: 8px; flex-shrink: 0; }
-.pwa-btn-yes { background: var(--primary); color: white; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
-.pwa-btn-no { background: #f3f4f6; color: #555; border: none; padding: 9px 14px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; }
-#policy-full-page { position: fixed; inset: 0; background: white; z-index: 9999; padding: 20px; overflow-y: auto; }
 </style>
 </head>
 <body>
@@ -418,10 +404,12 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
   </div>
 </div>
 
+<!-- ===== AI + SUPPORT CHATBOT ===== -->
+<!-- Chat Window -->
 <script 
     src="https://support-ai-cyan-kappa.vercel.app/chatBot.js" 
     data-owner-id="usr_117621865953887490">
-</script> 
+</script>
 
 <div id="policy-full-page" class="hidden">
   <div style="max-width:800px;margin:0 auto;padding-bottom:50px;">
@@ -1291,9 +1279,7 @@ db.ref('meta').on('value', s=>{
     if(v.contact.whatsapp) {
     document.getElementById('con-wa-link').href=`https://wa.me/${v.contact.whatsapp}`;
     // Update WA float button too
-    const waFloat = document.querySelector('.wa-float');
-    if(waFloat) waFloat.href = `https://wa.me/${v.contact.whatsapp}`;
-    // Store globally for popup
+    // Store WA link globally for chatbot + contact popup
     window._waLink = `https://wa.me/${v.contact.whatsapp}`;
   }
     const sDiv=document.getElementById('footer-socials');const cDiv=document.getElementById('contact-socials');
@@ -1968,6 +1954,308 @@ window.togglePassVis = (id, btn) => {
 
 // Run check on page load
 window.addEventListener('load', checkResetLink);
+// ================================================================
+// AI + SUPPORT CHATBOT — Powered by Claude AI
+// ================================================================
+let chatOpen = false;
+let chatHistory = [];
+let chatWaLink = 'https://wa.link/s62366';
+let chatBotTyping = false;
+
+// Store context for AI — loaded from Firebase
+const STORE_CONTEXT = `You are Anifold Store's friendly customer support AI assistant. 
+Anifold Store sells premium anime papercraft templates for download.
+Key info:
+- Products: Anime papercraft PDF templates (Naruto, One Piece, Demon Slayer, Dragon Ball, etc.)
+- Price: ₹19 per template (discounted from ₹69)
+- Instant digital download after purchase
+- Payment: Razorpay (UPI, GPay, PhonePe, Card)
+- After purchase: Download link appears on product page and in My Library
+- Refund: Digital products, no refund after download (contact support for issues)
+- Support: WhatsApp for instant help
+- Website: anifold.shop
+- Language: Reply in the same language the user writes in (Hindi/English/Hinglish)
+- Be friendly, helpful, concise. Use emojis occasionally.
+- If user wants to download, tell them to login, buy the product, then download from product page or My Library.
+- If user has payment issue, ask them to check order history or contact WhatsApp.`;
+
+const QUICK_REPLIES_DEFAULT = [
+  { label: '📦 How to Download', msg: 'How do I download after purchase?' },
+  { label: '💳 Payment Issues', msg: 'I have a payment problem' },
+  { label: '🛒 How to Buy', msg: 'How to buy a template?' },
+  { label: '📚 My Library', msg: 'Where is my library?' },
+  { label: '💬 WhatsApp', msg: '__whatsapp__' },
+];
+
+function toggleChat() {
+  chatOpen = !chatOpen;
+  const win = document.getElementById('chat-window');
+  const fab = document.getElementById('chat-fab');
+  const notif = document.getElementById('chat-notif');
+  win.classList.toggle('open', chatOpen);
+  fab.classList.toggle('open', chatOpen);
+  if(notif) notif.style.display = 'none';
+  if(chatOpen && chatHistory.length === 0) {
+    setTimeout(showWelcome, 300);
+  }
+  if(chatOpen) {
+    setTimeout(function(){ document.getElementById('chat-inp').focus(); }, 400);
+  }
+}
+
+function showWelcome() {
+  const user = auth.currentUser;
+  const name = user ? (user.displayName || user.email.split('@')[0]) : 'there';
+  addBotMsg('👋 Hi ' + name + '! I'm Anifold's AI assistant.
+
+I can help with:
+• Downloading templates
+• Payment & orders
+• Product info
+• Any other questions!
+
+What can I help you with? 😊');
+  showQuickReplies(QUICK_REPLIES_DEFAULT);
+}
+
+function addBotMsg(text, isError) {
+  const msgs = document.getElementById('chat-msgs');
+  const time = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  const row = document.createElement('div');
+  row.className = 'msg-row';
+  row.innerHTML = '<div class="msg-avatar bot">🐉</div>' +
+    '<div><div class="msg-bubble bot' + (isError?' err':'') + '">' + 
+    text.replace(/
+/g, '<br>') + '</div>' +
+    '<div class="msg-time">' + time + '</div></div>';
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addUserMsg(text) {
+  const msgs = document.getElementById('chat-msgs');
+  const time = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  const initials = auth.currentUser ? (auth.currentUser.displayName||'U')[0].toUpperCase() : 'U';
+  row.innerHTML = '<div class="msg-avatar user-av">' + initials + '</div>' +
+    '<div><div class="msg-bubble user">' + text.replace(/
+/g, '<br>') + '</div>' +
+    '<div class="msg-time" style="text-align:right">' + time + '</div></div>';
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('chat-msgs');
+  const el = document.createElement('div');
+  el.className = 'msg-row';
+  el.id = 'chat-typing-indicator';
+  el.innerHTML = '<div class="msg-avatar bot">🐉</div>' +
+    '<div class="chat-typing"><span></span><span></span><span></span></div>';
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('chat-typing-indicator');
+  if(el) el.remove();
+}
+
+function showQuickReplies(replies) {
+  const qr = document.getElementById('quick-replies');
+  qr.innerHTML = '';
+  replies.forEach(function(r) {
+    const btn = document.createElement('button');
+    btn.className = 'qr-btn';
+    btn.textContent = r.label;
+    btn.onclick = function() {
+      if(r.msg === '__whatsapp__') { openWhatsApp(); return; }
+      document.getElementById('chat-inp').value = r.msg;
+      sendChat();
+    };
+    qr.appendChild(btn);
+  });
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chat-inp');
+  const msg = inp.value.trim();
+  if(!msg || chatBotTyping) return;
+  
+  inp.value = '';
+  inp.style.height = 'auto';
+  
+  // Clear quick replies
+  document.getElementById('quick-replies').innerHTML = '';
+  
+  // Special: WhatsApp shortcut
+  if(msg === '__whatsapp__') { openWhatsApp(); return; }
+  
+  addUserMsg(msg);
+  chatHistory.push({ role: 'user', content: msg });
+  
+  chatBotTyping = true;
+  document.getElementById('chat-send-btn').disabled = true;
+  showTyping();
+  
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        system: STORE_CONTEXT,
+        messages: chatHistory.slice(-10) // Keep last 10 messages for context
+      })
+    });
+    
+    if(!response.ok) throw new Error('API error ' + response.status);
+    
+    const data = await response.json();
+    const reply = data.content && data.content[0] ? data.content[0].text : 'Sorry, I could not respond.';
+    
+    hideTyping();
+    addBotMsg(reply);
+    chatHistory.push({ role: 'assistant', content: reply });
+    
+    // Show contextual quick replies based on conversation
+    const lowerReply = reply.toLowerCase();
+    const lowerMsg = msg.toLowerCase();
+    if(lowerMsg.includes('download') || lowerReply.includes('library') || lowerReply.includes('download')) {
+      showQuickReplies([
+        { label: '📚 Go to My Library', msg: '__library__' },
+        { label: '💬 WhatsApp Help', msg: '__whatsapp__' },
+        { label: '❓ More help', msg: 'I still need help with downloading' }
+      ]);
+    } else if(lowerMsg.includes('pay') || lowerReply.includes('payment') || lowerReply.includes('razorpay')) {
+      showQuickReplies([
+        { label: '💬 WhatsApp Support', msg: '__whatsapp__' },
+        { label: '📋 Check Orders', msg: '__orders__' },
+        { label: '🔄 Try again', msg: 'How to retry a failed payment?' }
+      ]);
+    } else {
+      showQuickReplies([
+        { label: '💬 WhatsApp', msg: '__whatsapp__' },
+        { label: '❓ More questions', msg: 'I have another question' }
+      ]);
+    }
+    
+  } catch(err) {
+    hideTyping();
+    // Fallback to smart local responses
+    const localReply = getLocalReply(msg);
+    addBotMsg(localReply);
+    chatHistory.push({ role: 'assistant', content: localReply });
+    showQuickReplies([
+      { label: '💬 WhatsApp Help', msg: '__whatsapp__' },
+      { label: '🔄 Ask again', msg: msg }
+    ]);
+  }
+  
+  chatBotTyping = false;
+  document.getElementById('chat-send-btn').disabled = false;
+  
+  // Handle navigation shortcuts in quick replies
+  setupNavShortcuts();
+}
+
+function setupNavShortcuts() {
+  document.querySelectorAll('.qr-btn').forEach(function(btn) {
+    if(!btn._setupDone) {
+      btn._setupDone = true;
+      const originalClick = btn.onclick;
+      btn.onclick = function() {
+        if(!originalClick) return;
+        // Intercept nav shortcuts
+        const msg = btn._msg;
+        if(msg === '__library__') { toggleChat(); nav('library'); return; }
+        if(msg === '__orders__') { toggleChat(); nav('dashboard'); return; }
+        originalClick.call(btn);
+      };
+    }
+  });
+}
+
+// Fallback local responses when API unavailable
+function getLocalReply(msg) {
+  const q = msg.toLowerCase();
+  if(q.includes('download') || q.includes('डाउनलोड')) {
+    return '📥 **How to Download:**
+1. Login to your account
+2. Buy the product (₹19)
+3. Go back to product page — a green "Download Now" button appears
+4. Or go to Menu → My Library
+
+If button not showing, try refreshing. Still issues? WhatsApp us! 💬';
+  }
+  if(q.includes('pay') || q.includes('payment') || q.includes('पेमेंट')) {
+    return '💳 **Payment Options:**
+• UPI (GPay, PhonePe, Paytm)
+• Credit/Debit Card
+• Net Banking
+
+All payments via Razorpay (100% secure).
+
+If payment failed, the amount is NOT deducted. Please try again or WhatsApp us! 💬';
+  }
+  if(q.includes('buy') || q.includes('kaise') || q.includes('खरीद')) {
+    return '🛒 **How to Buy:**
+1. Create an account / Login
+2. Browse products or search
+3. Click product → "Buy Now" or "Add to Cart"
+4. Pay ₹19 via UPI/Card
+5. Download instantly after payment! 🎉';
+  }
+  if(q.includes('library') || q.includes('लाइब्रेरी')) {
+    return '📚 **My Library:**
+All your purchased templates are saved in My Library.
+
+Go to: ☰ Menu → My Library
+
+Click any product to download it anytime! 💫';
+  }
+  if(q.includes('refund') || q.includes('रिफंड')) {
+    return '↩️ **Refund Policy:**
+Since these are digital downloads, refunds are not available after download.
+
+However, if you face any technical issue, contact us on WhatsApp and we'll help you! 💬';
+  }
+  if(q.includes('hello') || q.includes('hi') || q.includes('hii') || q.includes('नमस्ते') || q.includes('hey')) {
+    return '👋 Hello! How can I help you today?
+
+I can answer questions about:
+• Downloads & Library
+• Payments & Orders
+• Products & Pricing
+• Technical issues';
+  }
+  return '🤔 I'm not sure about that. For immediate help, please contact us on WhatsApp — we typically reply within 2-4 hours!
+
+Or try rephrasing your question 😊';
+}
+
+function openWhatsApp() {
+  // Use dynamic WA link from Firebase if available
+  const link = window._waLink || chatWaLink;
+  window.open(link, '_blank');
+}
+
+// Update WA link when Firebase loads
+const _origMetaOn = window._metaOnCb;
+// Hook into Firebase meta load
+setTimeout(function() {
+  if(window._waLink) chatWaLink = window._waLink;
+}, 3000);
+
+// Show notif badge after 3 seconds to draw attention
+setTimeout(function() {
+  if(!chatOpen) {
+    const notif = document.getElementById('chat-notif');
+    if(notif) notif.style.display = 'flex';
+  }
+}, 3000);
 
 // ====== AUTOFILL PROTECTION — catches any autofill attempt ======
 // Runs once on load + watches for late autofill
@@ -1986,6 +2274,8 @@ setTimeout(clearAutofill, 500);
 setTimeout(clearAutofill, 1500);
 // Also check on any click/focus event on page
 document.addEventListener('click', function() { setTimeout(clearAutofill, 50); }, true);
+
+
 </script>
 </body>
 </html>
