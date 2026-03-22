@@ -114,8 +114,9 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
 #flash-countdown { display: inline-block; background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 20px; margin-left: 10px; font-family: monospace; }
 #side-menu { position: fixed; top: 0; left: -100%; width: 280px; height: 100vh; background: var(--dark); z-index: 200; transition: 0.3s cubic-bezier(0.4,0,0.2,1); padding-top: 20px; overflow-y: auto; box-shadow: 10px 0 40px rgba(0,0,0,0.3); }
 #side-menu.open { left: 0; }
-.side-menu-logo { padding: 10px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; }
-.side-menu-logo img { height: 36px; }
+.side-menu-logo { padding: 16px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px; display:flex; align-items:center; gap:10px; }
+.side-menu-logo img { height: 44px; width: auto; object-fit: contain; border-radius: 8px; }
+.side-menu-logo-text { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; color: var(--accent); letter-spacing: 2px; }
 .menu-link { display: flex; align-items: center; gap: 12px; padding: 14px 24px; text-decoration: none; color: rgba(255,255,255,0.8); font-weight: 500; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: 0.2s; }
 .menu-link:hover { color: white; background: rgba(255,255,255,0.05); }
 .menu-link-icon { width: 20px; text-align: center; font-size: 1rem; }
@@ -460,7 +461,10 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
   <div class="overlay" id="overlay" onclick="closeAllDrawers()"></div>
 
   <nav id="side-menu">
-    <div class="side-menu-logo"><img id="side-logo" src="" alt="Anifold" style="height:36px;" onerror="this.style.display='none'"></div>
+    <div class="side-menu-logo">
+      <img id="side-logo" src="" alt="Anifold" style="display:none;" onerror="this.style.display='none';document.getElementById('side-logo-txt').style.display='block';">
+      <span id="side-logo-txt" style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--accent);letter-spacing:2px;">ANIFOLD</span>
+    </div>
     <a href="#" id="menu-download-app" class="menu-link app-dl-btn hidden" target="_blank"><span class="menu-link-icon">📱</span> Download App</a>
     <a class="menu-link auth-only hidden" onclick="nav('dashboard')"><span class="menu-link-icon">👤</span> My Account</a>
     <a class="menu-link auth-only hidden" onclick="nav('library')"><span class="menu-link-icon">📚</span> My Library</a>
@@ -662,13 +666,90 @@ header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.
   </footer>
 </div>
 
-<div id="forgot-modal" style="display:none;position:fixed;z-index:1001;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
-  <div style="background:white;padding:28px;border-radius:16px;max-width:380px;width:90%;text-align:center;position:relative;">
-    <button onclick="closeForgotModal()" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.2rem;cursor:pointer;color:#aaa;">✕</button>
-    <div style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">Reset Password</div>
-    <p style="font-size:0.85rem;color:#666;margin-bottom:16px;">Enter your email to receive a reset link</p>
-    <input type="email" id="reset-email" class="input-field" placeholder="Your Email">
-    <button class="btn-full" onclick="sendResetEmail()">Send Reset Link</button>
+<!-- ===== FORGOT PASSWORD MODAL ===== -->
+<div id="forgot-modal" style="display:none;position:fixed;z-index:1001;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:white;border-radius:20px;max-width:380px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#702122,#a40000);padding:24px 24px 20px;text-align:center;position:relative;">
+      <button onclick="closeForgotModal()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,0.15);border:none;color:white;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;">✕</button>
+      <div style="font-size:2.2rem;margin-bottom:8px;">🔐</div>
+      <div style="font-size:1.1rem;font-weight:900;color:white;letter-spacing:0.5px;">Reset Password</div>
+      <div style="font-size:0.78rem;color:rgba(255,255,255,0.7);margin-top:4px;">We'll send a secure reset link</div>
+    </div>
+    <!-- Body -->
+    <div style="padding:24px;">
+      <div id="reset-form-wrap">
+        <label style="font-size:0.75rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Your Email Address</label>
+        <input type="email" id="reset-email" class="input-field" placeholder="example@email.com" style="margin-bottom:14px;" onkeydown="if(event.key==='Enter')sendResetEmail()">
+        <button class="btn-full" id="btn-reset" onclick="sendResetEmail()" style="background:linear-gradient(135deg,#702122,#a40000);border-radius:10px;">
+          📧 Send Reset Link
+        </button>
+      </div>
+      <div id="reset-success-wrap" style="display:none;text-align:center;padding:10px 0;">
+        <div style="font-size:2.5rem;margin-bottom:12px;">📬</div>
+        <div style="font-weight:800;font-size:1rem;color:#111;margin-bottom:8px;">Email Sent!</div>
+        <div style="font-size:0.82rem;color:#666;line-height:1.6;margin-bottom:18px;">Check your inbox and click the reset link. Don't forget to check spam folder.</div>
+        <button onclick="closeForgotModal()" style="background:#f3f4f6;color:#555;border:none;padding:11px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.85rem;width:100%;">Close</button>
+      </div>
+      <p style="text-align:center;font-size:0.75rem;color:#aaa;margin-top:14px;">
+        Remembered? <span onclick="closeForgotModal()" style="color:var(--primary);font-weight:700;cursor:pointer;">Back to Login</span>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CUSTOM PASSWORD RESET PAGE (handles Firebase oobCode) ===== -->
+<div id="reset-page" style="display:none;position:fixed;inset:0;z-index:10000;background:#f4f4f5;overflow-y:auto;">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:white;border-radius:20px;max-width:400px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+      <div style="background:linear-gradient(135deg,#702122,#a40000);padding:30px 24px;text-align:center;">
+        <img id="reset-page-logo" src="" alt="Anifold" style="height:52px;border-radius:10px;margin:0 auto 14px;display:block;" onerror="this.style.display='none'">
+        <div id="reset-page-title" style="font-size:1.1rem;font-weight:900;color:white;">Set New Password</div>
+        <div id="reset-page-sub" style="font-size:0.78rem;color:rgba(255,255,255,0.7);margin-top:4px;">Create a strong new password</div>
+      </div>
+      <div style="padding:28px 24px;" id="reset-page-body">
+        <div id="rp-loading" style="text-align:center;padding:20px 0;color:#aaa;font-size:0.9rem;">
+          <div style="width:32px;height:32px;border:3px solid #f0f0f0;border-top-color:#702122;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
+          Verifying link...
+        </div>
+        <div id="rp-form" style="display:none;">
+          <label style="font-size:0.75rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">New Password</label>
+          <div style="position:relative;margin-bottom:12px;">
+            <input type="password" id="rp-new-pass" class="input-field" placeholder="At least 6 characters" style="margin:0;padding-right:44px;" oninput="checkPassStrength(this.value)">
+            <button onclick="togglePassVis('rp-new-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:#aaa;">👁</button>
+          </div>
+          <div id="rp-strength" style="height:4px;background:#f0f0f0;border-radius:2px;margin-bottom:4px;overflow:hidden;"><div id="rp-strength-bar" style="height:100%;width:0;transition:width .3s,background .3s;border-radius:2px;"></div></div>
+          <div id="rp-strength-txt" style="font-size:0.7rem;color:#aaa;margin-bottom:14px;"></div>
+          <label style="font-size:0.75rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Confirm Password</label>
+          <div style="position:relative;margin-bottom:20px;">
+            <input type="password" id="rp-conf-pass" class="input-field" placeholder="Repeat new password" style="margin:0;padding-right:44px;" onkeydown="if(event.key==='Enter')doPasswordReset()">
+            <button onclick="togglePassVis('rp-conf-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:#aaa;">👁</button>
+          </div>
+          <button class="btn-full" id="btn-do-reset" onclick="doPasswordReset()" style="background:linear-gradient(135deg,#702122,#a40000);border-radius:10px;">
+            🔐 Set New Password
+          </button>
+        </div>
+        <div id="rp-success" style="display:none;text-align:center;padding:10px 0;">
+          <div style="font-size:3rem;margin-bottom:12px;">🎉</div>
+          <div style="font-weight:800;font-size:1.1rem;color:#111;margin-bottom:8px;">Password Updated!</div>
+          <div style="font-size:0.82rem;color:#666;line-height:1.6;margin-bottom:20px;">Your password has been reset successfully.</div>
+          <button onclick="goToLogin()" class="btn-full" style="background:linear-gradient(135deg,#702122,#a40000);border-radius:10px;">
+            Login Now →
+          </button>
+        </div>
+        <div id="rp-error" style="display:none;text-align:center;padding:10px 0;">
+          <div style="font-size:3rem;margin-bottom:12px;">⚠️</div>
+          <div style="font-weight:800;font-size:1rem;color:#dc2626;margin-bottom:8px;" id="rp-error-msg">Link Expired</div>
+          <div style="font-size:0.82rem;color:#666;line-height:1.6;margin-bottom:20px;" id="rp-error-sub">This reset link has expired or already been used.</div>
+          <button onclick="retryResetEmail()" class="btn-full" style="background:#f3f4f6;color:#555;margin-bottom:8px;border-radius:10px;">
+            📧 Send New Reset Link
+          </button>
+          <button onclick="goToLogin()" style="width:100%;background:linear-gradient(135deg,#702122,#a40000);color:white;border:none;padding:13px;border-radius:10px;font-weight:700;cursor:pointer;">
+            Back to Login
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -835,17 +916,32 @@ window.doGoogleLogin = () => {
   googleProvider.setCustomParameters({ prompt: 'select_account' });
 
   if(isMobile) {
-    // Mobile — redirect (popup blocked on mobile browsers)
-    localStorage.setItem('googleRedirectPending', '1');
-    auth.signInWithRedirect(googleProvider);
+    // Mobile — use redirect (popup always blocked on mobile)
+    try {
+      localStorage.setItem('googleRedirectPending', '1');
+      localStorage.setItem('googleRedirectTime', Date.now().toString());
+    } catch(e) {}
+    auth.signInWithRedirect(googleProvider)
+      .catch(er => {
+        localStorage.removeItem('googleRedirectPending');
+        const msg = er.code === 'auth/unauthorized-domain'
+          ? 'Domain not authorized. Add anifold.shop in Firebase Console → Auth → Settings → Authorized Domains'
+          : er.code === 'auth/network-request-failed'
+          ? 'No internet connection.'
+          : 'Google login failed. Try again.';
+        showToast(msg, 'error');
+      });
   } else {
-    // Desktop — popup
+    // Desktop — popup with redirect fallback
     auth.signInWithPopup(googleProvider)
       .then(r => handleGoogleResult(r))
       .catch(e => {
-        // If popup blocked, fallback to redirect
         if(e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user') {
+          // Fallback to redirect on desktop too
+          localStorage.setItem('googleRedirectPending', '1');
           auth.signInWithRedirect(googleProvider);
+        } else if(e.code === 'auth/unauthorized-domain') {
+          showToast('Domain not authorized. Add anifold.shop in Firebase Console → Auth → Settings → Authorized Domains', 'error');
         } else {
           showToast(e.code === 'auth/network-request-failed' ? 'No internet connection.' : 'Google login failed. Try again.', 'error');
         }
@@ -1581,10 +1677,155 @@ window.handleAuth = () => {
   }
 };
 
-window.openForgotModal=()=>{const m=document.getElementById('forgot-modal');m.style.display='flex';};
+window.openForgotModal=()=>{
+  const m=document.getElementById('forgot-modal');
+  m.style.display='flex';
+  // Reset to form state
+  document.getElementById('reset-form-wrap').style.display='block';
+  document.getElementById('reset-success-wrap').style.display='none';
+  document.getElementById('reset-email').value='';
+};
 window.closeForgotModal=()=>{document.getElementById('forgot-modal').style.display='none';};
 
-// Password reset — Firebase handle karta hai, alag email nahi chahiye
 window.sendResetEmail=()=>{
-  const e=document.getElementById('reset-email').value;
-  if(!e){show
+  const e=document.getElementById('reset-email').value.trim();
+  if(!e){showToast("Enter your email",'error');return;}
+  if(!e.includes('@')){showToast("Enter a valid email",'error');return;}
+  const btn=document.getElementById('btn-reset');
+  btn.disabled=true; btn.textContent='Sending...';
+  auth.sendPasswordResetEmail(e, {
+    url: 'https://anifold.shop/#auth',
+    handleCodeInApp: false
+  })
+  .then(()=>{
+    document.getElementById('reset-form-wrap').style.display='none';
+    document.getElementById('reset-success-wrap').style.display='block';
+  })
+  .catch(er=>{
+    const m={
+      'auth/user-not-found':'No account found with this email.',
+      'auth/invalid-email':'Enter a valid email address.',
+      'auth/network-request-failed':'No internet connection.',
+      'auth/too-many-requests':'Too many attempts. Wait and try again.'
+    };
+    showToast(m[er.code]||'Could not send reset email. Try again.','error');
+    btn.disabled=false; btn.textContent='📧 Send Reset Link';
+  });
+};
+
+// ====== CUSTOM PASSWORD RESET PAGE ======
+// Runs on page load — checks if URL has oobCode (Firebase reset link)
+function checkResetLink() {
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get('mode');
+  const oobCode = params.get('oobCode');
+  if(mode === 'resetPassword' && oobCode) {
+    showResetPage(oobCode);
+  }
+}
+
+function showResetPage(oobCode) {
+  // Show reset page, hide main app
+  document.getElementById('reset-page').style.display='block';
+  document.getElementById('app-wrapper').style.display='none';
+  // Set logo
+  const logo = document.getElementById('reset-page-logo');
+  if(logo) logo.src = 'https://res.cloudinary.com/di1mnrg0l/image/upload/v1774133808/Picsart-26-01-02-20-57-06-204_sidqa7.png';
+  // Verify the oobCode first
+  auth.verifyPasswordResetCode(oobCode).then(email => {
+    document.getElementById('rp-loading').style.display='none';
+    document.getElementById('rp-form').style.display='block';
+    document.getElementById('reset-page-sub').textContent = 'Resetting password for ' + email;
+    window._resetOobCode = oobCode;
+    window._resetEmail = email;
+  }).catch(er => {
+    document.getElementById('rp-loading').style.display='none';
+    document.getElementById('rp-error').style.display='block';
+    if(er.code === 'auth/expired-action-code') {
+      document.getElementById('rp-error-msg').textContent = 'Link Expired';
+      document.getElementById('rp-error-sub').textContent = 'This reset link has expired (valid for 1 hour). Request a new one.';
+    } else if(er.code === 'auth/invalid-action-code') {
+      document.getElementById('rp-error-msg').textContent = 'Link Already Used';
+      document.getElementById('rp-error-sub').textContent = 'This reset link has already been used. Request a new one.';
+    } else {
+      document.getElementById('rp-error-msg').textContent = 'Invalid Link';
+      document.getElementById('rp-error-sub').textContent = 'This reset link is invalid. Please request a new one.';
+    }
+  });
+}
+
+window.doPasswordReset = () => {
+  const newPass = document.getElementById('rp-new-pass').value;
+  const confPass = document.getElementById('rp-conf-pass').value;
+  if(!newPass || newPass.length < 6){ showToast('Password must be at least 6 characters','error'); return; }
+  if(newPass !== confPass){ showToast("Passwords don't match",'error'); return; }
+  const btn = document.getElementById('btn-do-reset');
+  btn.disabled=true; btn.textContent='Updating...';
+  auth.confirmPasswordReset(window._resetOobCode, newPass).then(() => {
+    document.getElementById('rp-form').style.display='none';
+    document.getElementById('rp-success').style.display='block';
+    document.getElementById('reset-page-title').textContent='Password Updated! 🎉';
+    document.getElementById('reset-page-sub').textContent='You can now login with your new password';
+  }).catch(er => {
+    const m = {
+      'auth/expired-action-code':'Reset link expired. Request a new one.',
+      'auth/invalid-action-code':'Invalid or already used reset link.',
+      'auth/weak-password':'Password must be at least 6 characters.'
+    };
+    showToast(m[er.code]||'Failed to reset password. Try again.','error');
+    btn.disabled=false; btn.textContent='🔐 Set New Password';
+  });
+};
+
+window.goToLogin = () => {
+  document.getElementById('reset-page').style.display='none';
+  document.getElementById('app-wrapper').style.display='flex';
+  // Clear oobCode from URL
+  history.replaceState({}, '', window.location.pathname);
+  nav('auth');
+};
+
+window.retryResetEmail = () => {
+  document.getElementById('reset-page').style.display='none';
+  document.getElementById('app-wrapper').style.display='flex';
+  history.replaceState({}, '', window.location.pathname);
+  nav('auth');
+  setTimeout(openForgotModal, 300);
+};
+
+// Password strength checker
+window.checkPassStrength = (val) => {
+  const bar = document.getElementById('rp-strength-bar');
+  const txt = document.getElementById('rp-strength-txt');
+  if(!bar || !txt) return;
+  let score = 0;
+  if(val.length >= 6) score++;
+  if(val.length >= 10) score++;
+  if(/[A-Z]/.test(val)) score++;
+  if(/[0-9]/.test(val)) score++;
+  if(/[^A-Za-z0-9]/.test(val)) score++;
+  const levels = [
+    {w:'0%',c:'#f0f0f0',t:''},
+    {w:'25%',c:'#ef4444',t:'Weak'},
+    {w:'50%',c:'#f97316',t:'Fair'},
+    {w:'75%',c:'#eab308',t:'Good'},
+    {w:'90%',c:'#22c55e',t:'Strong'},
+    {w:'100%',c:'#16a34a',t:'Very Strong ✓'},
+  ];
+  const l = levels[Math.min(score, 5)];
+  bar.style.width=l.w; bar.style.background=l.c;
+  txt.textContent=l.t; txt.style.color=l.c;
+};
+
+window.togglePassVis = (id, btn) => {
+  const inp = document.getElementById(id);
+  if(!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+};
+
+// Run check on page load
+window.addEventListener('load', checkResetLink);
+</script>
+</body>
+</html>
