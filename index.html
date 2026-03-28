@@ -1375,58 +1375,67 @@ function updateCheckoutSummary(){
 }
 
 // ======================================================
-// ✅ CONFIRM ORDER — Fixed: coupon usedCount update + email fix
+// ✅ CONFIRM ORDER — Auto-capture fix with order_id
 // ======================================================
 window.confirmOrderMobile=event=>{const b=document.getElementById('co-place-btn');if(b){b.disabled=true;b.innerText='Opening...';}confirmOrder(event);};
 
-window.confirmOrder=event=>{
+window.confirmOrder=async function(event){
   if(!razorpayKey){showToast("Payment not configured. Contact support.",'error');return;}
   if(!auth.currentUser){showToast("Please login first",'error');nav('auth');return;}
   const btn=event.target;btn.disabled=true;btn.innerText="Opening Payment...";
   const amt=Math.round(checkoutFinalAmount*100);
   const orderDate=new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+
+  // ✅ Backend se order_id lo — auto-capture ke liye zaroori
+  let rzpOrderId=null;
+  try{
+    const res=await fetch(BACKEND,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:amt})});
+    const data=await res.json();
+    if(data.order_id)rzpOrderId=data.order_id;
+    else throw new Error(data.error||'Order create failed');
+  }catch(e){
+    showToast("Payment init failed: "+e.message,'error');
+    btn.disabled=false;btn.innerText="⚡ PLACE ORDER →";
+    const b2=document.getElementById('co-place-btn');const b3=document.getElementById('co-place-btn-sticky');
+    if(b2){b2.disabled=false;b2.innerText='⚡ PLACE ORDER →';}
+    if(b3){b3.disabled=false;b3.innerText='⚡ PLACE ORDER →';}
+    return;
+  }
+
   const rzp=new Razorpay({
-    key:razorpayKey,amount:amt,currency:"INR",name:"Anifold Store",
+    key:razorpayKey,amount:amt,currency:"INR",
+    order_id:rzpOrderId, // ✅ Yahi fix hai
+    name:"Anifold Store",
     description:checkoutItems.length===1?checkoutItems[0].title:checkoutItems.length+" items",
     image:"https://res.cloudinary.com/di1mnrg0l/image/upload/v1774128852/Picsart-26-01-02-20-57-17-409_kzckpu.png",
     handler:function(resp){
       btn.innerText="Saving...";
-      const uid=auth.currentUser.uid;
-      const email=auth.currentUser.email;
-      // 1. Save orders to Firebase
+      const uid=auth.currentUser.uid;const email=auth.currentUser.email;
       checkoutItems.forEach(item=>{
         const price=getFlashPrice(item)||item.discountedPrice;
-        db.ref('orders').push({item:item.title,price,email,date:Date.now(),paymentId:resp.razorpay_payment_id,status:'completed'});
+        db.ref('orders').push({item:item.title,price,email,date:Date.now(),paymentId:resp.razorpay_payment_id,orderId:rzpOrderId,status:'completed'});
         db.ref('users/'+uid+'/purchases/'+item.key).set(true);
       });
       myPurchases.push(...checkoutItems.map(i=>i.key));
-      // ✅ FIX 2 (Coupon): Update usedCount in Firebase after successful order
       if(activeCoupon){
-        const couponRef=db.ref('coupons/'+activeCoupon.code);
-        couponRef.transaction(cd=>{if(cd){cd.usedCount=(cd.usedCount||0)+1;}return cd;});
-        // Also track per-user usage
+        db.ref('coupons/'+activeCoupon.code).transaction(cd=>{if(cd)cd.usedCount=(cd.usedCount||0)+1;return cd;});
         db.ref(`users/${uid}/couponUsage/${activeCoupon.code}`).transaction(v=>(v||0)+1);
         activeCoupon=null;
       }
-      // ✅ FIX 6: Order email — now works with template fallback
-      callEmail('order_email',{
-        to_email:email,
-        to_name:auth.currentUser.displayName||'Customer',
-        product_name:checkoutItems.map(i=>i.title).join(', '),
-        order_total:'₹'+checkoutFinalAmount.toFixed(2),
-        order_date:orderDate,
-        payment_id:resp.razorpay_payment_id
-      });
-      // Telegram notification
+      callEmail('order_email',{to_email:email,to_name:auth.currentUser.displayName||'Customer',product_name:checkoutItems.map(i=>i.title).join(', '),order_total:'₹'+checkoutFinalAmount.toFixed(2),order_date:orderDate,payment_id:resp.razorpay_payment_id});
       tgNotify('tg_order',{item:checkoutItems.map(i=>i.title).join(', '),price:checkoutFinalAmount.toFixed(2),email,customer_name:auth.currentUser.displayName||email.split('@')[0],payment_id:resp.razorpay_payment_id});
-      // Clear cart if needed
       if(cart.some(c=>c.key===checkoutItems[0]?.key)){cart=[];localStorage.setItem('anifoldCart','[]');updateCartCount();toggleCart(false);}
       showToast("🎉 Order placed successfully!");
       setTimeout(()=>nav('library'),800);
     },
     prefill:{email:auth.currentUser.email,name:auth.currentUser.displayName||''},
     theme:{color:"#702122"},
-    modal:{ondismiss:()=>{btn.disabled=false;btn.innerText="PLACE ORDER →";const b2=document.getElementById('co-place-btn');const b3=document.getElementById('co-place-btn-sticky');if(b2){b2.disabled=false;b2.innerText='⚡ PLACE ORDER →';}if(b3){b3.disabled=false;b3.innerText='⚡ PLACE ORDER →';}}}
+    modal:{ondismiss:()=>{
+      btn.disabled=false;btn.innerText="PLACE ORDER →";
+      const b2=document.getElementById('co-place-btn');const b3=document.getElementById('co-place-btn-sticky');
+      if(b2){b2.disabled=false;b2.innerText='⚡ PLACE ORDER →';}
+      if(b3){b3.disabled=false;b3.innerText='⚡ PLACE ORDER →';}
+    }}
   });
   rzp.on('payment.failed',r=>{showToast("Payment failed: "+(r.error.description||'Try again'),'error');btn.disabled=false;btn.innerText="PLACE ORDER →";});
   rzp.open();
