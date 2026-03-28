@@ -1386,21 +1386,23 @@ window.confirmOrder=async function(event){
   const amt=Math.round(checkoutFinalAmount*100);
   const orderDate=new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
 
-  // ✅ Backend se order_id lo — auto-capture ke liye zaroori
-  let rzpOrderId=null;
-  try{
-    const res=await fetch(BACKEND,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:amt})});
-    const data=await res.json();
-    if(data.order_id)rzpOrderId=data.order_id;
-    else throw new Error(data.error||'Order create failed');
-  }catch(e){
-    showToast("Payment init failed: "+e.message,'error');
-    btn.disabled=false;btn.innerText="⚡ PLACE ORDER →";
-    const b2=document.getElementById('co-place-btn');const b3=document.getElementById('co-place-btn-sticky');
-    if(b2){b2.disabled=false;b2.innerText='⚡ PLACE ORDER →';}
-    if(b3){b3.disabled=false;b3.innerText='⚡ PLACE ORDER →';}
-    return;
-  }
+// ✅ Backend se order_id lo — fail ho toh bhi payment chale
+let rzpOrderId=null;
+try{
+  const ctrl=new AbortController();
+  setTimeout(()=>ctrl.abort(),8000); // 8 sec timeout
+  const res=await fetch(BACKEND,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({amount:amt}),
+    signal:ctrl.signal
+  });
+  const data=await res.json();
+  if(data.order_id)rzpOrderId=data.order_id;
+}catch(e){
+  console.warn('Order ID fetch failed, proceeding without it:',e.message);
+  // ✅ Fallback — bina order_id ke bhi payment chalegi (auto-capture nahi hoga but payment hogi)
+}
 
   const rzp=new Razorpay({
     key:razorpayKey,amount:amt,currency:"INR",
